@@ -1,0 +1,28 @@
+# Secrets and personal data
+.env
+config/profile.yaml
+
+# Database and generated output
+data/tracker.db
+data/processed/
+output/
+
+# Personal documents (never commit)
+examples/letters/
+examples/cv_base.docx
+examples/ratings.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
