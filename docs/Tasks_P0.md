@@ -16,7 +16,7 @@
 - [x] Task 00 — Git init + .gitignore
 - [x] Task 01 — requirements.txt
 - [x] Task 02 — setup.py
-- [ ] Task 03 — src/db.py (database init + all operations)
+- [x] Task 03 — src/db.py (database init + all operations)
 - [ ] Task 04 — src/ai_client.py (provider abstraction)
 - [ ] Task 05 — config/profile.yaml (pre-filled with Jiri's real profile)
 - [ ] Task 06 — config/prompts/score.txt
@@ -189,7 +189,7 @@ Must print a final status summary:
 
 ## Task 03 — src/db.py
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `src/db.py`
 
 **Description:**
