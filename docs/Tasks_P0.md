@@ -22,7 +22,7 @@
 - [x] Task 06 — config/prompts/score.txt
 - [x] Task 07 — config/prompts/generate.txt
 - [x] Task 08 — main.py (CLI shell — commands defined, not yet implemented)
-- [ ] Task 09 — copy example letters + CV to examples/
+- [x] Task 09 — copy example letters + CV to examples/
 
 ---
 
@@ -523,7 +523,7 @@ load_profile() helper function:
 
 ## Task 09 — Copy example files
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `examples/letters/`, `examples/cv_base.docx`
 
 **Description:**
