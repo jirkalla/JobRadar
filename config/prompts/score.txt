@@ -42,6 +42,12 @@ Location rules:
 
 {job_text}
 
+--- NOTE ON salary_mentioned ---
+
+The salary_mentioned field from the job listing is the recruiter placement fee
+(Vermittlungshonorar) — not the candidate's salary. Treat it as context only.
+Do not use it to assess compensation or score the job higher or lower.
+
 --- REQUIRED OUTPUT ---
 
 Return a JSON object with exactly these fields and no others:
