@@ -20,7 +20,7 @@
 - [x] Task 04 — src/ai_client.py (provider abstraction)
 - [x] Task 05 — config/profile.yaml (pre-filled with Jiri's real profile)
 - [x] Task 06 — config/prompts/score.txt
-- [ ] Task 07 — config/prompts/generate.txt
+- [x] Task 07 — config/prompts/generate.txt
 - [ ] Task 08 — main.py (CLI shell — commands defined, not yet implemented)
 - [ ] Task 09 — copy example letters + CV to examples/
 
@@ -441,7 +441,7 @@ Include honest scoring guidance:
 
 ## Task 07 — config/prompts/generate.txt
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `config/prompts/generate.txt`
 
 **Description:**
