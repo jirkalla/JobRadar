@@ -23,6 +23,7 @@
 - [x] Task 07 — config/prompts/generate.txt
 - [x] Task 08 — main.py (CLI shell — commands defined, not yet implemented)
 - [x] Task 09 — copy example letters + CV to examples/
+- [x] Task 10 — completion check + merge to main
 
 ---
 
@@ -38,7 +39,7 @@
 - [x] `data/tracker.db` exists and contains 4 tables
 - [x] `config/profile.yaml` contains Jiri's name, real skills, voice document
 - [x] `config/profile.yaml` is NOT shown in `git status` (gitignored)
-- [~] `examples/letters/` contains 3 cover letter files — 2 of 3 (aroundHome unavailable)
+- [x] `examples/letters/` contains 3 cover letter files (copied from uploads)
 - [x] No secrets in any committed file
 
 ---
@@ -287,7 +288,7 @@ Error message format for missing API key (Windows-friendly):
 
 ## Task 05 — config/profile.yaml
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `config/profile.yaml`, `config/profile.yaml.example`
 
 **Description:**
@@ -563,12 +564,57 @@ december letter uses bullet points — rated 3, useful only for structured JDs.
 
 ---
 
-## Commit
+## Task 10 — Completion check + merge to main
 
-When all tasks complete and completion checklist passes:
+**Status:** [x]
+**Files:** `docs/MILESTONES.md` (status update only)
 
-```
-feat(p0): scaffold — project structure, DB, config, prompts, example files
-```
+**Description:**
+Run the full completion checklist, verify everything passes,
+merge the P0 branch into main, and create the P1 branch.
+This is always the last task of every phase.
 
-Then create Tasks_P1.md before starting Phase 1.
+**Steps in order:**
+
+1. Run the full Completion Checklist above — every item must pass.
+   Show Jiri the output of each command. Stop if anything fails.
+   Wait for Jiri's confirmation before proceeding.
+
+2. Update docs/MILESTONES.md:
+   Change P0 status from "⏳ Active" to "✅ Done"
+
+3. Commit the status update:
+   ```
+   docs(p0): mark P0 complete in MILESTONES.md
+   ```
+
+4. Merge to main:
+   ```
+   git checkout main
+   git merge feature/p0-scaffold --no-ff -m "feat(p0): merge Phase 0 scaffold"
+   ```
+
+5. Create the P1 branch:
+   ```
+   git checkout -b feature/p1-parse-score
+   ```
+
+6. Confirm the result:
+   ```
+   git branch
+   git log --oneline -5
+   ```
+   Expected: currently on feature/p1-parse-score,
+   log shows merge commit at top
+
+**Constraints:**
+- NEVER push to remote without asking Jiri first
+- NEVER merge without Jiri's explicit confirmation in chat
+- Only proceed to step 4 after Jiri says "ok to merge" or similar
+
+**Acceptance Criteria:**
+- All completion checklist items pass
+- MILESTONES.md shows P0 as ✅ Done
+- `git log --oneline` shows merge commit: "feat(p0): merge Phase 0 scaffold"
+- Currently on branch feature/p1-parse-score
+- `git branch` shows both main and feature/p1-parse-score
