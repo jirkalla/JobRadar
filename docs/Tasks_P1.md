@@ -38,7 +38,7 @@ See /docs/ARCHITECTURE.md section 4 for the exact format.
 ## Progress
 
 - [x] Task P1.1 — Rewrite src/parser.py for Infoagent digest format
-- [ ] Task P1.2 — Create src/scorer.py
+- [x] Task P1.2 — Create src/scorer.py
 - [ ] Task P1.3 — Implement main.py process command
 - [ ] Task P1.4 — Implement main.py review command
 - [ ] Task P1.5 — End-to-end test on real EML file
@@ -156,7 +156,7 @@ Parsing rules for each block:
 
 ## Task P1.2 — Create src/scorer.py
 
-**Status:** [ ]
+**Status:** [x]
 **Files:**
 - `src/scorer.py` (NEW)
 
