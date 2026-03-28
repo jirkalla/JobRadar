@@ -17,7 +17,7 @@
 - [x] Task 01 — requirements.txt
 - [x] Task 02 — setup.py
 - [x] Task 03 — src/db.py (database init + all operations)
-- [ ] Task 04 — src/ai_client.py (provider abstraction)
+- [x] Task 04 — src/ai_client.py (provider abstraction)
 - [ ] Task 05 — config/profile.yaml (pre-filled with Jiri's real profile)
 - [ ] Task 06 — config/prompts/score.txt
 - [ ] Task 07 — config/prompts/generate.txt
@@ -240,7 +240,7 @@ See /docs/ARCHITECTURE.md section 5 for complete column definitions.
 
 ## Task 04 — src/ai_client.py
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `src/ai_client.py`
 
 **Description:**
