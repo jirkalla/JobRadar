@@ -190,9 +190,96 @@ def cmd_process(args: argparse.Namespace) -> None:
         _process_single_eml(eml_path, profile, client, prompt_template, console)
 
 
+def _show_review_table(jobs: list, console: object) -> None:
+    """Display jobs as a numbered Rich table for review, sorted by score descending."""
+    from rich.table import Table
+    table = Table(title=f"{len(jobs)} jobs to review")
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Score", width=6, justify="center")
+    table.add_column("Title", max_width=40)
+    table.add_column("Company", max_width=20)
+    table.add_column("Location", max_width=22)
+    table.add_column("Remote", width=8)
+    table.add_column("Salary", width=8)
+    table.add_column("Status", width=10)
+    for i, job in enumerate(jobs, 1):
+        score = job.get("score", 0) or 0
+        if score >= 7:
+            score_cell = f"[green]{score}[/green]"
+        elif score >= 5:
+            score_cell = f"[yellow]{score}[/yellow]"
+        else:
+            score_cell = f"[red]{score}[/red]"
+        loc = job.get("location") or ""
+        if not job.get("location_ok", True):
+            loc = f"{loc} [red]NO-LOC[/red]"
+        table.add_row(
+            str(i),
+            score_cell,
+            (job.get("role_title") or "")[:40],
+            (job.get("company") or "")[:20],
+            loc[:22],
+            (job.get("remote_type") or "")[:8],
+            str(job.get("salary") or "")[:8],
+            job.get("status") or "",
+        )
+    console.print(table)
+
+
 def cmd_review(args: argparse.Namespace) -> None:
-    """Review and approve or reject scored jobs."""
-    print("Coming in Phase 1: review scored jobs")
+    """Review scored jobs — approve, reject, skip, or add notes."""
+    from rich.console import Console
+    from src.db import init_db, get_jobs, update_job_status
+    console = Console()
+    try:
+        profile = load_profile()
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return
+    init_db()
+    min_score = args.min if args.min is not None else profile.get("preferences", {}).get("min_score_to_show", 0)
+
+    def fetch_jobs() -> list:
+        jobs = get_jobs(min_score=min_score)
+        if not args.all:
+            jobs = [j for j in jobs if j.get("status") in ("new", "reviewed")]
+        return jobs
+
+    jobs = fetch_jobs()
+    if not jobs:
+        console.print("No jobs to review.")
+        return
+
+    while True:
+        jobs = fetch_jobs()
+        if not jobs:
+            console.print("[green]All done — no more jobs to review.[/green]")
+            break
+        _show_review_table(jobs, console)
+        raw = input("\nEnter job number to act on (or 'q' to quit): ").strip().lower()
+        if raw == "q":
+            break
+        if not raw.isdigit() or not (1 <= int(raw) <= len(jobs)):
+            console.print("[yellow]Invalid number — try again.[/yellow]")
+            continue
+        job = jobs[int(raw) - 1]
+        job_id = job["id"]
+        console.print(f"\n[bold]{job.get('role_title')}[/bold] — {job.get('company')}")
+        action = input("[A]pprove / [R]eject / [S]kip / [N]otes: ").strip().lower()
+        if action == "a":
+            update_job_status(job_id, "approved")
+            console.print("[green]Approved.[/green]")
+        elif action == "r":
+            update_job_status(job_id, "rejected")
+            console.print("[red]Rejected.[/red]")
+        elif action == "n":
+            notes = input("Notes: ").strip()
+            update_job_status(job_id, job.get("status", "reviewed"), notes=notes)
+            console.print("[dim]Notes saved.[/dim]")
+        elif action == "s":
+            pass
+        else:
+            console.print("[yellow]Unknown action — skipping.[/yellow]")
 
 
 def cmd_generate(args: argparse.Namespace) -> None:
@@ -229,10 +316,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="parse inbox emails and score jobs (Phase 1)",
     ).set_defaults(func=cmd_process)
 
-    subparsers.add_parser(
+    review_parser = subparsers.add_parser(
         "review",
         help="review scored jobs — approve, reject, or skip (Phase 1)",
-    ).set_defaults(func=cmd_review)
+    )
+    review_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="show all statuses including rejected",
+    )
+    review_parser.add_argument(
+        "--min",
+        type=int,
+        default=None,
+        metavar="N",
+        help="show only jobs with score >= N (default: profile min_score_to_show)",
+    )
+    review_parser.set_defaults(func=cmd_review)
 
     generate_parser = subparsers.add_parser(
         "generate",
