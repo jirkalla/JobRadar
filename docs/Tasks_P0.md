@@ -14,7 +14,7 @@
 ## Progress
 
 - [x] Task 00 — Git init + .gitignore
-- [ ] Task 01 — requirements.txt
+- [x] Task 01 — requirements.txt
 - [ ] Task 02 — setup.py
 - [ ] Task 03 — src/db.py (database init + all operations)
 - [ ] Task 04 — src/ai_client.py (provider abstraction)
@@ -105,7 +105,7 @@ See /docs for architecture, milestones, and task files.
 
 ## Task 01 — requirements.txt
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `requirements.txt`
 
 **Description:**
