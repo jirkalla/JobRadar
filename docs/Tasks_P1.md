@@ -160,6 +160,18 @@ Parsing rules for each block:
 **Files:**
 - `src/scorer.py` (NEW)
 
+**NOTE — salary field is a placement fee, not candidate salary:**
+The `salary` field in JobStub (and `salary_mentioned` in the DB) contains the
+recruiter placement fee (Vermittlungshonorar) from the Quelle line — not the
+candidate's compensation. Before completing this task, update config/prompts/score.txt
+to add this note so the AI interprets it correctly:
+
+  "Note: salary_mentioned is the recruiter placement fee (Vermittlungshonorar),
+  not the candidate's salary. Treat it as context only — do not use it to assess
+  compensation."
+
+Commit the prompt change separately: prompt(p1): clarify salary_mentioned is placement fee
+
 **What scorer.py does:**
 1. Reads config/profile.yaml to build the scoring context
 2. Reads config/prompts/score.txt prompt template
