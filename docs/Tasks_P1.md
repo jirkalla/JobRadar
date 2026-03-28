@@ -37,7 +37,7 @@ See /docs/ARCHITECTURE.md section 4 for the exact format.
 
 ## Progress
 
-- [ ] Task P1.1 — Rewrite src/parser.py for Infoagent digest format
+- [x] Task P1.1 — Rewrite src/parser.py for Infoagent digest format
 - [ ] Task P1.2 — Create src/scorer.py
 - [ ] Task P1.3 — Implement main.py process command
 - [ ] Task P1.4 — Implement main.py review command
@@ -63,7 +63,7 @@ See /docs/ARCHITECTURE.md section 4 for the exact format.
 
 ## Task P1.1 — Rewrite src/parser.py for Infoagent digest format
 
-**Status:** [ ]
+**Status:** [x]
 **Files:**
 - `src/parser.py` (REWRITE — replaces the existing single-email version)
 
