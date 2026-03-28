@@ -1,6 +1,7 @@
 # Core
 pyyaml==6.0.2
 rich==13.7.1
+python-dotenv==1.0.1
 
 # EML + document parsing
 pypdf==4.3.1
