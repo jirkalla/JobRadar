@@ -28,18 +28,18 @@
 
 ## Completion Checklist
 
-- [ ] `git status` — clean working tree, on branch feature/p0-scaffold
-- [ ] `git log --oneline` — shows one commit per completed task
-- [ ] `pip install -r requirements.txt` — no errors
-- [ ] `python setup.py` — prints success, all folders created, DB initialized
-- [ ] `python main.py --help` — shows all 5 commands without error
-- [ ] `python -c "from src.db import init_db; init_db(); print('DB OK')"` — prints DB OK
-- [ ] `python -c "from src.ai_client import get_client; print('AI OK')"` — prints AI OK
-- [ ] `data/tracker.db` exists and contains 4 tables
-- [ ] `config/profile.yaml` contains Jiri's name, real skills, voice document
-- [ ] `config/profile.yaml` is NOT shown in `git status` (gitignored)
-- [ ] `examples/letters/` contains 3 cover letter files (copied from uploads)
-- [ ] No secrets in any committed file
+- [x] `git status` — clean working tree, on branch feature/p0-scaffold
+- [x] `git log --oneline` — shows one commit per completed task
+- [x] `pip install -r requirements.txt` — no errors
+- [x] `python setup.py` — prints success, all folders created, DB initialized
+- [x] `python main.py --help` — shows all 5 commands without error
+- [x] `python -c "from src.db import init_db; init_db(); print('DB OK')"` — prints DB OK
+- [x] `python -c "from src.ai_client import get_client; print('AI OK')"` — prints AI OK
+- [x] `data/tracker.db` exists and contains 4 tables
+- [x] `config/profile.yaml` contains Jiri's name, real skills, voice document
+- [x] `config/profile.yaml` is NOT shown in `git status` (gitignored)
+- [~] `examples/letters/` contains 3 cover letter files — 2 of 3 (aroundHome unavailable)
+- [x] No secrets in any committed file
 
 ---
 
