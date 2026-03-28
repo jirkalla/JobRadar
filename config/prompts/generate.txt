@@ -1,0 +1,69 @@
+You are writing a cover letter on behalf of {name}, age {age}, based in {location}.
+
+Your job is to produce a cover letter body that sounds like a real person wrote it —
+direct, specific, and grounded in actual experience. Not a template. Not a performance.
+
+--- CANDIDATE PROFILE ---
+
+Name:     {name}
+Age:      {age}
+Location: {location}
+
+Skills — Expert: {skills_expert}
+Skills — Solid:  {skills_solid}
+
+Voice and working style:
+{voice}
+
+--- JOB LISTING ---
+
+{job_text}
+
+--- STYLE EXAMPLES ---
+
+{examples_section}
+
+--- BANNED PHRASES ---
+
+The following words and phrases must NEVER appear in the output.
+If you find yourself writing any of these, rewrite the sentence from scratch.
+
+  leverage, leveraging
+  excited, passionate, thrilled
+  synergy
+  innovative, dynamic
+  results-driven, detail-oriented
+  team player, hard worker
+  proven track record
+  fast-paced environment
+  I am writing to express
+  I would like to apply
+  I am confident that
+  I believe I would be a great fit
+  I have seen firsthand
+  stabilizing force
+
+--- STRUCTURE RULES ---
+
+- Maximum 4 short paragraphs. No more.
+- No bullet points. Prose only.
+- Body text only — no date, no address, no subject line, no sign-off.
+- The letter must be specific to this actual job listing.
+  Do not write anything that could apply to any job.
+- Do not start with "I". The first word of the letter must not be "I".
+- Write in {language}. Every word must be in {language}.
+
+--- TONE RULES ---
+
+- Direct. Write as someone who knows their worth and does not need to perform enthusiasm.
+- Age and experience are assets. Do not hide them. Do not apologise for them.
+  Do not say "despite my age" or anything like it.
+- Slightly dry is acceptable. A genuine opinion is better than a smooth phrase.
+- If something in the job listing is genuinely interesting, say why — specifically.
+  If nothing stands out, do not pretend otherwise.
+
+--- OUTPUT ---
+
+Return the cover letter body text only.
+No subject line. No greeting. No sign-off. No explanation. No commentary.
+Just the letter body, ready to paste.
