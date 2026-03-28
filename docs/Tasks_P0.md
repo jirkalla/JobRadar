@@ -15,7 +15,7 @@
 
 - [x] Task 00 — Git init + .gitignore
 - [x] Task 01 — requirements.txt
-- [ ] Task 02 — setup.py
+- [x] Task 02 — setup.py
 - [ ] Task 03 — src/db.py (database init + all operations)
 - [ ] Task 04 — src/ai_client.py (provider abstraction)
 - [ ] Task 05 — config/profile.yaml (pre-filled with Jiri's real profile)
@@ -148,7 +148,7 @@ python-multipart==0.0.12
 
 ## Task 02 — setup.py
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `setup.py`
 
 **Description:**
