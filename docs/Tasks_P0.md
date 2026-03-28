@@ -18,8 +18,8 @@
 - [x] Task 02 — setup.py
 - [x] Task 03 — src/db.py (database init + all operations)
 - [x] Task 04 — src/ai_client.py (provider abstraction)
-- [ ] Task 05 — config/profile.yaml (pre-filled with Jiri's real profile)
-- [ ] Task 06 — config/prompts/score.txt
+- [x] Task 05 — config/profile.yaml (pre-filled with Jiri's real profile)
+- [x] Task 06 — config/prompts/score.txt
 - [ ] Task 07 — config/prompts/generate.txt
 - [ ] Task 08 — main.py (CLI shell — commands defined, not yet implemented)
 - [ ] Task 09 — copy example letters + CV to examples/
@@ -402,7 +402,7 @@ voice: |
 
 ## Task 06 — config/prompts/score.txt
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `config/prompts/score.txt`
 
 **Description:**
