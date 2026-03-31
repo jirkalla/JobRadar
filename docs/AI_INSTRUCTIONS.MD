@@ -62,6 +62,7 @@ AI MUST NOT:
 See /docs/ARCHITECTURE.md for full detail. Summary:
 
 Layer rules:
+  src/fetcher.py     — Forpsi IMAP download only. No AI calls, no DB calls, stdlib only.
   src/parser.py      — EML parsing only. No AI calls, no DB calls.
   src/scorer.py      — Scoring logic only. Calls ai_client, reads profile. No DB writes.
   src/generator.py   — Document generation only. Calls ai_client. No DB writes.
