@@ -52,7 +52,7 @@ Do not use it to assess compensation or score the job higher or lower.
 
 Return a JSON object with exactly these fields and no others:
 
-{
+{{
   "company": "company name as stated",
   "role_title": "exact job title from the listing",
   "location": "location as stated in the listing",
@@ -67,6 +67,6 @@ Return a JSON object with exactly these fields and no others:
   "recommended": true or false,
   "salary_mentioned": "salary string if stated, or null",
   "tech_stack": ["technology mentioned in listing", "..."]
-}
+}}
 
 Respond with JSON only. No markdown. No explanation.

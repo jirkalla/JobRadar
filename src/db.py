@@ -61,7 +61,7 @@ def insert_job(data: dict) -> str:
               strong_matches, concerns, notes.
     """
     date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-    job_id = make_job_id(data["company"], data["role_title"], date_str)
+    job_id = make_job_id(data.get("company") or "unknown", data.get("role_title") or "unknown", date_str)
     ts = now_iso()
 
     with get_conn() as conn:

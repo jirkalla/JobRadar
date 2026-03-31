@@ -145,7 +145,7 @@ def score_job(
     """
     jd_text = fetch_job_description(stub.url)
 
-    if not jd_text:
+    if len(jd_text) < 300:
         return _failed_result(stub, "Could not fetch job description")
 
     prompt = build_score_prompt(stub, jd_text, profile, prompt_template)
@@ -159,8 +159,8 @@ def score_job(
     loc_ok, loc_reason = check_location(result, profile)
 
     return {
-        "company":        result.get("company", stub.company),
-        "role_title":     result.get("role_title", stub.title),
+        "company":        result.get("company") or stub.company,
+        "role_title":     result.get("role_title") or stub.title,
         "location":       result.get("location", stub.location),
         "remote_type":    result.get("remote_type", "unclear"),
         "language":       result.get("language", "en"),
