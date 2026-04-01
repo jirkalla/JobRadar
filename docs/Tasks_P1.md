@@ -38,7 +38,7 @@ before testing — never refactor untested code.
 - [x] Task P1.3 — Implement main.py process command
 - [x] Task P1.4 — Implement main.py review command
 - [x] Task P1.5 — End-to-end test on real EML file
-- [ ] Task P1.6 — Create src/fetcher.py + main.py fetch command
+- [x] Task P1.6 — Create src/fetcher.py + main.py fetch command
 - [ ] Task P1.7 — Completion check + merge to main
 
 ---
@@ -187,7 +187,7 @@ Common issues to expect:
 
 ## Task P1.6 — Create src/fetcher.py + main.py fetch command
 
-**Status:** [ ]
+**Status:** [x]
 **Files:**
 - `src/fetcher.py` (NEW)
 - `main.py` (EXTEND — add fetch command)

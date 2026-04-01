@@ -282,6 +282,57 @@ def cmd_review(args: argparse.Namespace) -> None:
             console.print("[yellow]Unknown action — skipping.[/yellow]")
 
 
+def cmd_fetch(args: argparse.Namespace) -> None:
+    """Download new Infoagent digest emails from Forpsi IMAP to inbox/."""
+    import os
+    from rich.console import Console
+    from src.fetcher import fetch_digests
+
+    console = Console()
+    try:
+        profile = load_profile()
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return
+
+    fetch_cfg = profile.get("fetch", {})
+    sender = fetch_cfg.get("sender", "info@anzeigendaten.de")
+    subject = fetch_cfg.get("subject") or None
+    filename_prefix = fetch_cfg.get("filename_prefix", "Suche_Infoagent")
+    since = args.since or None
+    on_date = args.date or None
+
+    try:
+        count, files = fetch_digests(
+            inbox_dir=Path("inbox"),
+            processed_dir=Path("data/processed"),
+            env=os.environ,
+            sender=sender,
+            subject=subject,
+            since=since,
+            on_date=on_date,
+            filename_prefix=filename_prefix,
+        )
+    except EnvironmentError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return
+    except ConnectionError as exc:
+        console.print(f"[red]{exc}[/red]")
+        console.print(
+            "[yellow]Tip: place .eml files in inbox/ manually and run: python main.py process[/yellow]"
+        )
+        return
+
+    if count == 0:
+        console.print("[yellow]No new job digests found.[/yellow]")
+        console.print(f"Tip: check that Forpsi is receiving emails from {sender}")
+    else:
+        console.print(f"[green]Downloaded {count} digest(s):[/green]")
+        for f in files:
+            console.print(f"  {f}")
+        console.print("\nRun: python main.py process")
+
+
 def cmd_generate(args: argparse.Namespace) -> None:
     """Generate a tailored CV and cover letter for an approved job."""
     print("Coming in Phase 3: generate CV and cover letter")
@@ -310,6 +361,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     subparsers = parser.add_subparsers(title="commands", metavar="<command>")
+
+    fetch_parser = subparsers.add_parser(
+        "fetch",
+        help="download new Infoagent digests from Forpsi IMAP to inbox/ (Phase 1)",
+    )
+    fetch_parser.add_argument(
+        "--since",
+        metavar="DD-Mon-YYYY",
+        default=None,
+        help="only fetch emails on or after this date (e.g. 01-Mar-2026)",
+    )
+    fetch_parser.add_argument(
+        "--date",
+        metavar="YYYY-MM-DD",
+        default=None,
+        help="fetch emails from this exact day only (e.g. 2026-03-31)",
+    )
+    fetch_parser.set_defaults(func=cmd_fetch)
 
     subparsers.add_parser(
         "process",
