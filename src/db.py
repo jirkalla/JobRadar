@@ -356,3 +356,19 @@ def init_db() -> None:
                 created_at  TEXT NOT NULL
             );
         """)
+
+
+def reset_db() -> dict:
+    """Delete all rows from job-related tables. Schema unchanged.
+
+    NOTE: Deleting from activity_log is a deliberate one-time exception
+    to the APPEND ONLY rule, used to wipe P1 test data. Do not reuse
+    this pattern elsewhere.
+    """
+    tables = ["outcomes", "documents", "activity_log", "jobs"]
+    counts = {}
+    with get_conn() as conn:
+        for table in tables:
+            cur = conn.execute(f"DELETE FROM {table}")
+            counts[table] = cur.rowcount
+    return counts

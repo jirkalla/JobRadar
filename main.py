@@ -345,6 +345,25 @@ def cmd_generate(args: argparse.Namespace) -> None:
     print("Coming in Phase 3: generate CV and cover letter")
 
 
+def cmd_reset(args: argparse.Namespace) -> None:
+    """Wipe all job-related data from the database (test data reset)."""
+    from rich.console import Console
+    from src.db import init_db, reset_db
+    console = Console()
+
+    if not args.confirm:
+        console.print("[yellow]WARNING: This will delete all job data.[/yellow]")
+        console.print("Run: python main.py reset --confirm")
+        return
+
+    init_db()
+    console.print("Clearing database...")
+    counts = reset_db()
+    for table in ["jobs", "activity_log", "documents", "outcomes"]:
+        console.print(f"  {table}: {counts.get(table, 0)} rows deleted")
+    console.print("[green]Database cleared. Ready for real use.[/green]")
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     """Update the status of a job application."""
     print("Coming in Phase 4: update job status")
@@ -435,6 +454,17 @@ def build_parser() -> argparse.ArgumentParser:
         "report",
         help="export agency activity report for a date range (Phase 2)",
     ).set_defaults(func=cmd_report)
+
+    reset_parser = subparsers.add_parser(
+        "reset",
+        help="delete all job data from the database (use once to clear P1 test data)",
+    )
+    reset_parser.add_argument(
+        "--confirm",
+        action="store_true",
+        help="required flag — without it the command does nothing",
+    )
+    reset_parser.set_defaults(func=cmd_reset)
 
     return parser
 
