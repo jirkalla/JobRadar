@@ -14,7 +14,7 @@
 | # | Name | Status | Goal |
 |---|------|--------|------|
 | P0 | Scaffold | ✅ Done | Project structure, deps, DB, profile, voice doc |
-| P1 | Parse + Score | ⏳ Active | Digest parser, URL fetcher, AI scorer, ranked terminal list |
+| P1 | Parse + Score | ✅ Done | Digest parser, URL fetcher, AI scorer, ranked terminal list |
 | P2 | Backfill + Report | ⏳ Planned | Manual entry wizard, agency PDF/CSV export — URGENT |
 | P3 | Generate Documents | ⏳ Planned | CV tailoring, cover letter, versioned .docx output |
 | P4 | Learning Loop | ⏳ Planned | Ratings feed examples, outcome tracking, quality improvement |
@@ -51,7 +51,7 @@ The system parses the Infoagent digest format (50-60 jobs per email), shows a qu
 filter list, fetches full job descriptions for kept jobs, scores them with AI, and
 displays a ranked list in the terminal. All results written to SQLite.
 
-**Status:** ⏳ Active
+**Status:** ✅ Done
 **Branch:** feature/p1-parse-score
 **Task file:** /docs/Tasks_P1.md (created when P0 is complete)
 
