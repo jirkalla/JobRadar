@@ -300,7 +300,13 @@ def cmd_fetch(args: argparse.Namespace) -> None:
     subject = fetch_cfg.get("subject") or None
     filename_prefix = fetch_cfg.get("filename_prefix", "Suche_Infoagent")
     since = args.since or None
+    until = args.until or None
     on_date = args.date or None
+
+    if until and not since:
+        console.print("[red]Error: --until requires --since[/red]")
+        console.print("Example: python main.py fetch --since 2026-02-16 --until 2026-02-22")
+        return
 
     try:
         count, files = fetch_digests(
@@ -310,6 +316,7 @@ def cmd_fetch(args: argparse.Namespace) -> None:
             sender=sender,
             subject=subject,
             since=since,
+            until=until,
             on_date=on_date,
             filename_prefix=filename_prefix,
         )
@@ -368,9 +375,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     fetch_parser.add_argument(
         "--since",
-        metavar="DD-Mon-YYYY",
+        metavar="YYYY-MM-DD",
         default=None,
-        help="only fetch emails on or after this date (e.g. 01-Mar-2026)",
+        help="download emails from this date (inclusive). Replaces UNSEEN filter.",
+    )
+    fetch_parser.add_argument(
+        "--until",
+        metavar="YYYY-MM-DD",
+        default=None,
+        help="download emails up to and including this date. Requires --since.",
     )
     fetch_parser.add_argument(
         "--date",

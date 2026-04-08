@@ -20,6 +20,13 @@ def _parse_date_yymmdd(date_header: str) -> str:
         return "unknown"
 
 
+def _to_imap_date(iso: str) -> str:
+    """Convert YYYY-MM-DD to DD-Mon-YYYY for IMAP SINCE/BEFORE criteria."""
+    from datetime import date
+    d = date.fromisoformat(iso)
+    return d.strftime("%d-%b-%Y")
+
+
 def fetch_digests(
     inbox_dir: Path,
     processed_dir: Path,
@@ -27,13 +34,14 @@ def fetch_digests(
     sender: str = "info@anzeigendaten.de",
     subject: str | None = None,
     since: str | None = None,
+    until: str | None = None,
     on_date: str | None = None,
     filename_prefix: str = "Suche_Infoagent",
 ) -> tuple[int, list[str]]:
     """Connect to Forpsi IMAP and download unread digest emails.
 
     Searches INBOX for UNSEEN messages matching sender, optional subject,
-    and optional since date. Saves each match as inbox/{filename_prefix}_{YYMMDD}.eml
+    and optional date range. Saves each match as inbox/{filename_prefix}_{YYMMDD}.eml
     and marks it read on the server. Skips files already in inbox_dir or
     processed_dir.
 
@@ -43,10 +51,11 @@ def fetch_digests(
         env: Environment variable dict (pass os.environ).
         sender: FROM address to filter on (default: info@anzeigendaten.de).
         subject: Optional SUBJECT keyword to filter on.
-        since: Optional date string in IMAP format "DD-Mon-YYYY" (e.g. "01-Mar-2026").
-               If provided, only messages on or after this date are fetched.
+        since: Lower bound date (YYYY-MM-DD). Replaces UNSEEN filter when set.
+        until: Upper bound date (YYYY-MM-DD, inclusive). Requires since.
+               Translates to IMAP BEFORE (exclusive) by adding 1 day internally.
         on_date: Optional ISO date string "YYYY-MM-DD" (e.g. "2026-03-31").
-                 If provided, fetches only messages from that exact day (overrides since).
+                 If provided, fetches only messages from that exact day (overrides since/until).
         filename_prefix: Prefix for saved .eml filenames (e.g. "Suche_Infoagent_JiriVosta").
 
     Returns:
@@ -97,21 +106,25 @@ def fetch_digests(
         # underscore word boundaries, so subject filtering is done in Python
         # after fetching headers — not as an IMAP search criterion.
         #
-        # UNSEEN is omitted when --date is given: an explicit date request
-        # means "give me that day's email" regardless of read/unread status.
+        # UNSEEN is omitted when --date or --since is given: an explicit date
+        # request means "give me those emails" regardless of read/unread status.
+        from datetime import date, timedelta
         parts: list[str] = [f'FROM "{sender}"']
         if on_date:
-            from datetime import date, timedelta
             day = date.fromisoformat(on_date)
             next_day = day + timedelta(days=1)
             imap_fmt = "%d-%b-%Y"
             parts.append(f'SINCE {day.strftime(imap_fmt)}')
             parts.append(f'BEFORE {next_day.strftime(imap_fmt)}')
         else:
-            # Normal run: only fetch unread messages
-            parts.insert(0, "UNSEEN")
             if since:
-                parts.append(f'SINCE {since}')
+                parts.append(f'SINCE {_to_imap_date(since)}')
+                if until:
+                    until_exclusive = date.fromisoformat(until) + timedelta(days=1)
+                    parts.append(f'BEFORE {until_exclusive.strftime("%d-%b-%Y")}')
+            else:
+                # Default run: only fetch unread messages
+                parts.insert(0, "UNSEEN")
 
         search_criteria = "(" + " ".join(parts) + ")"
         _, msg_ids_raw = imap.search(None, search_criteria)
