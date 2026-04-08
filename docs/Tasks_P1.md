@@ -39,7 +39,7 @@ before testing — never refactor untested code.
 - [x] Task P1.4 — Implement main.py review command
 - [x] Task P1.5 — End-to-end test on real EML file
 - [x] Task P1.6 — Create src/fetcher.py + main.py fetch command
-- [ ] Task P1.7 — Completion check + merge to main
+- [x] Task P1.7 — Completion check + merge to main
 
 ---
 
