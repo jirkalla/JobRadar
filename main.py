@@ -129,7 +129,7 @@ def _process_single_eml(
 ) -> None:
     """Parse, filter, score, and store one EML file."""
     from src.parser import parse_eml
-    from src.db import insert_job, job_exists_for_eml
+    from src.db import insert_job, job_exists_for_eml, find_similar_job
     filename = eml_path.name
     if job_exists_for_eml(filename):
         console.print(f"Already processed: {filename}")
@@ -140,6 +140,24 @@ def _process_single_eml(
         return
     _show_filter_table(stubs, console)
     kept, rejected = _quick_filter(stubs, console)
+
+    # Duplicate check — BEFORE scoring
+    deduped = []
+    for stub in kept:
+        existing = find_similar_job(stub.company, stub.title)
+        if existing:
+            console.print(f"\n[yellow]WARNING: Similar job already in DB:[/yellow]")
+            console.print(f"  {existing['role_title']} at {existing['company']}")
+            console.print(f"  Status: {existing['status']}  Score: {existing['score']}/10")
+            choice = input("  [S]kip / [K]eep as new / [V]iew full details: ").strip().lower()
+            if choice == "v":
+                console.print(f"  Score reason: {existing['score_reason']}")
+                choice = input("  [S]kip / [K]eep as new: ").strip().lower()
+            if choice == "s":
+                continue
+        deduped.append(stub)
+    kept = deduped
+
     console.print(f"\nKeeping [bold]{len(kept)}[/bold] jobs. Fetching and scoring... (this takes ~2 min)")
     results = _run_scoring(kept, profile, client, prompt_template, filename, console)
     n_saved = n_failed = 0

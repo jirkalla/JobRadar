@@ -9,7 +9,7 @@ Rules:
 
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -356,6 +356,39 @@ def init_db() -> None:
                 created_at  TEXT NOT NULL
             );
         """)
+
+
+def find_similar_job(company: str, role_title: str, days: int = 90) -> dict | None:
+    """Find an existing job with same company and similar role title within the last N days.
+
+    Args:
+        company: Company name to match exactly.
+        role_title: Role title to compare for word overlap.
+        days: Look-back window in days (default 90).
+
+    Returns:
+        The most recent matching job as a dict, or None if no match found.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT * FROM jobs
+            WHERE company = ?
+              AND created_at >= ?
+              AND status != 'rejected'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (company, cutoff),
+        ).fetchone()
+    if not row:
+        return None
+    # Check role similarity — at least one common significant word
+    stopwords = {"senior", "junior", "and", "or", "the", "in", "for", "m/f/d", "with"}
+    existing_words = set(row["role_title"].lower().split()) - stopwords
+    new_words = set(role_title.lower().split()) - stopwords
+    return dict(row) if existing_words & new_words else None
 
 
 def reset_db() -> dict:
