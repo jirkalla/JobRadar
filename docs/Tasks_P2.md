@@ -36,7 +36,7 @@ backfill.py only needs db.py — no AI, no parsing.
 
 - [x] Task P2.1 — DB reset command (main.py reset)
 - [x] Task P2.2 — Duplicate job detection in db.py + process command
-- [ ] Task P2.3 — backfill.py wizard
+- [x] Task P2.3 — backfill.py wizard
 - [ ] Task P2.4 — src/report.py + main.py report command
 - [ ] Task P2.5 — End-to-end test
 - [ ] Task P2.6 — Completion check + merge to main

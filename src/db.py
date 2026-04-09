@@ -51,7 +51,7 @@ def make_job_id(company: str, role: str, date: str) -> str:
     return f"{slugify(company)}-{slugify(role)}-{date}"
 
 
-def insert_job(data: dict) -> str:
+def insert_job(data: dict, source: str = "system", date_str: str | None = None) -> str:
     """Insert a new job record and log a 'scored' action. Return the job_id.
 
     Args:
@@ -59,8 +59,10 @@ def insert_job(data: dict) -> str:
               Optional: location, remote_type, language, score, score_reason,
               status, source_eml, jd_text, tech_stack, salary,
               strong_matches, concerns, notes.
+        source: 'system' (default) or 'manual' for backfill entries.
+        date_str: Date in YYYYMMDD format for the job ID. Defaults to today.
     """
-    date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+    date_str = date_str or datetime.now(timezone.utc).strftime("%Y%m%d")
     job_id = make_job_id(data.get("company") or "unknown", data.get("role_title") or "unknown", date_str)
     ts = now_iso()
 
@@ -101,8 +103,8 @@ def insert_job(data: dict) -> str:
             },
         )
         conn.execute(
-            "INSERT INTO activity_log (job_id, action, ts) VALUES (?, 'scored', ?)",
-            (job_id, ts),
+            "INSERT INTO activity_log (job_id, action, ts, source) VALUES (?, 'scored', ?, ?)",
+            (job_id, ts, source),
         )
 
     return job_id
@@ -356,6 +358,23 @@ def init_db() -> None:
                 created_at  TEXT NOT NULL
             );
         """)
+
+
+def job_exists_exact(company: str, role_title: str, date_str: str) -> bool:
+    """Return True if a job with exact company, role_title, and date already exists.
+
+    Args:
+        company: Company name to match exactly.
+        role_title: Role title to match exactly.
+        date_str: Date in YYYYMMDD format.
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM jobs WHERE company = ? AND role_title = ?"
+            " AND strftime('%Y%m%d', created_at) = ? LIMIT 1",
+            (company, role_title, date_str),
+        ).fetchone()
+    return row is not None
 
 
 def find_similar_job(company: str, role_title: str, days: int = 90) -> dict | None:
