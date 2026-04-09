@@ -346,10 +346,10 @@ Datum | Unternehmen | Position | Aktion | Status
 ```
 
 Column content:
-- Datum: DD.MM.YYYY format
+- Datum: `jobs.applied_at` formatted as DD.MM.YYYY (YYYYMMDD → DD.MM.YYYY)
 - Unternehmen: company name
 - Position: role_title (truncated to 45 chars if needed)
-- Aktion: German action label (see mapping below)
+- Aktion: German action label from latest activity_log row for that job (see mapping below)
 - Status: German status label (see mapping below)
 
 Action mapping (activity_log.action → German):
@@ -422,12 +422,15 @@ output/reports/bericht_{from_date}_bis_{to_date}.csv
 - reportlab for PDF — already in requirements.txt
 - All labels in German
 - PDF must be printable on A4
+- Date range filter uses `jobs.applied_at` (YYYYMMDD), not `activity_log.ts`
+- `get_activity_report()` in db.py already implements this correctly
 
 **Acceptance Criteria:**
 - `python -m py_compile src/report.py` — no errors
 - `python main.py report` — prompts for dates, generates both files
 - PDF opens correctly and shows German header with correct dates
-- PDF table contains all activity_log entries in the date range
+- PDF table shows 25 rows for range 2025-10-01 to 2026-02-28
+- Datum column shows actual application date (e.g. 07.10.2025), not today's date
 - Manual entries show "(M)" marker
 - CSV opens in Excel without errors
 

@@ -73,12 +73,12 @@ def insert_job(data: dict, source: str = "system", date_str: str | None = None) 
                 id, company, role_title, location, remote_type, language,
                 score, score_reason, status, source_eml, jd_text,
                 tech_stack, salary, strong_matches, concerns, notes,
-                created_at, updated_at
+                created_at, updated_at, applied_at
             ) VALUES (
                 :id, :company, :role_title, :location, :remote_type, :language,
                 :score, :score_reason, :status, :source_eml, :jd_text,
                 :tech_stack, :salary, :strong_matches, :concerns, :notes,
-                :created_at, :updated_at
+                :created_at, :updated_at, :applied_at
             )
             """,
             {
@@ -100,6 +100,7 @@ def insert_job(data: dict, source: str = "system", date_str: str | None = None) 
                 "notes": data.get("notes"),
                 "created_at": ts,
                 "updated_at": ts,
+                "applied_at": date_str,
             },
         )
         conn.execute(
@@ -263,22 +264,28 @@ def record_outcome(
 
 
 def get_activity_report(date_from: str, date_to: str) -> list[dict]:
-    """Return activity log entries joined with job data for a date range.
+    """Return one row per job in the applied_at date range, with latest action.
 
     Args:
-        date_from: Start of range, UTC ISO string (inclusive).
-        date_to: End of range, UTC ISO string (inclusive).
+        date_from: Start of range in YYYYMMDD format (inclusive).
+        date_to: End of range in YYYYMMDD format (inclusive).
     """
     with get_conn() as conn:
         rows = conn.execute(
             """
             SELECT
-                a.ts, a.action, a.detail, a.source,
-                j.company, j.role_title, j.location, j.status, j.score
-            FROM activity_log a
-            LEFT JOIN jobs j ON a.job_id = j.id
-            WHERE a.ts >= ? AND a.ts <= ?
-            ORDER BY a.ts ASC
+                j.applied_at, j.company, j.role_title, j.location,
+                j.status, j.score,
+                a.action, a.detail, a.source
+            FROM jobs j
+            LEFT JOIN activity_log a ON a.job_id = j.id
+              AND a.action = (
+                  SELECT action FROM activity_log
+                  WHERE job_id = j.id
+                  ORDER BY ts DESC LIMIT 1
+              )
+            WHERE j.applied_at >= ? AND j.applied_at <= ?
+            ORDER BY j.applied_at ASC
             """,
             (date_from, date_to),
         ).fetchall()
@@ -326,7 +333,8 @@ def init_db() -> None:
                 concerns      TEXT,
                 notes         TEXT,
                 created_at    TEXT NOT NULL,
-                updated_at    TEXT NOT NULL
+                updated_at    TEXT NOT NULL,
+                applied_at    TEXT
             );
 
             CREATE TABLE IF NOT EXISTS activity_log (
@@ -371,7 +379,7 @@ def job_exists_exact(company: str, role_title: str, date_str: str) -> bool:
     with get_conn() as conn:
         row = conn.execute(
             "SELECT 1 FROM jobs WHERE company = ? AND role_title = ?"
-            " AND strftime('%Y%m%d', created_at) = ? LIMIT 1",
+            " AND applied_at = ? LIMIT 1",
             (company, role_title, date_str),
         ).fetchone()
     return row is not None
