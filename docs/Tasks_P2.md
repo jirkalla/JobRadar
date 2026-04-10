@@ -38,8 +38,8 @@ backfill.py only needs db.py — no AI, no parsing.
 - [x] Task P2.2 — Duplicate job detection in db.py + process command
 - [x] Task P2.3 — backfill.py wizard
 - [x] Task P2.4 — src/report.py + main.py report command
-- [ ] Task P2.5 — End-to-end test
-- [ ] Task P2.6 — Completion check + merge to main
+- [x] Task P2.5 — End-to-end test
+- [x] Task P2.6 — Completion check + merge to main
 
 ---
 
@@ -438,7 +438,7 @@ output/reports/bericht_{from_date}_bis_{to_date}.csv
 
 ## Task P2.5 — End-to-end test
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** none — verification only
 
 **Steps:**
@@ -506,7 +506,7 @@ output/reports/bericht_{from_date}_bis_{to_date}.csv
 
 ## Task P2.6 — Completion check + merge to main
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `docs/MILESTONES.md` (status update only)
 
 **Steps in order:**

@@ -15,7 +15,7 @@
 |---|------|--------|------|
 | P0 | Scaffold | ✅ Done | Project structure, deps, DB, profile, voice doc |
 | P1 | Parse + Score | ✅ Done | Digest parser, URL fetcher, AI scorer, ranked terminal list |
-| P2 | Backfill + Report | ⏳ Planned | Manual entry wizard, agency PDF/CSV export — URGENT |
+| P2 | Backfill + Report | ✅ Done | Manual entry wizard, agency PDF/CSV export — URGENT |
 | P3 | Generate Documents | ⏳ Planned | CV tailoring, cover letter, versioned .docx output |
 | P4 | Learning Loop | ⏳ Planned | Ratings feed examples, outcome tracking, quality improvement |
 | P5 | Web UI | ⏳ Planned | FastAPI dashboard — all controls in browser |
@@ -83,7 +83,7 @@ displays a ranked list in the terminal. All results written to SQLite.
 
 This phase must be buildable and usable independently of Phase 1.
 
-**Status:** ⏳ Planned
+**Status:** ✅ Done
 **Branch:** feature/p2-backfill-report
 **Task file:** /docs/Tasks_P2.md (created when P1 is complete)
 
