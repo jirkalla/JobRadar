@@ -389,7 +389,34 @@ def cmd_status(args: argparse.Namespace) -> None:
 
 def cmd_report(args: argparse.Namespace) -> None:
     """Export an agency activity report for a date range."""
-    print("Coming in Phase 2: export agency report")
+    import sys
+    from datetime import datetime
+    from rich.console import Console
+    from src.report import generate_report
+
+    console = Console()
+
+    raw_from = input("Zeitraum Von (JJJJ-MM-TT): ").strip()
+    raw_to = input("Zeitraum Bis (JJJJ-MM-TT): ").strip()
+
+    try:
+        datetime.strptime(raw_from, "%Y-%m-%d")
+    except ValueError:
+        console.print(f"[red]Ungültiges Datum: '{raw_from}'. Format: JJJJ-MM-TT[/red]")
+        sys.exit(1)
+    try:
+        datetime.strptime(raw_to, "%Y-%m-%d")
+    except ValueError:
+        console.print(f"[red]Ungültiges Datum: '{raw_to}'. Format: JJJJ-MM-TT[/red]")
+        sys.exit(1)
+
+    date_from = raw_from.replace("-", "")
+    date_to = raw_to.replace("-", "")
+
+    pdf_path, csv_path, count = generate_report(date_from, date_to)
+    console.print(f"{count} Einträge gefunden.")
+    console.print(str(pdf_path))
+    console.print(str(csv_path))
 
 
 def build_parser() -> argparse.ArgumentParser:
