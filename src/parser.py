@@ -241,25 +241,76 @@ def scan_inbox(inbox_dir: Path) -> list[Path]:
     return sorted(inbox_dir.glob("*.eml"))
 
 
-def fetch_job_description(url: str, timeout: int = 10) -> str:
-    """Fetch a full job description from a URL and return plain text.
-
-    Uses stdlib urllib.request only — no requests library.
-    Returns empty string on any exception — never raises.
-    Truncates output to 5000 characters.
-
-    Args:
-        url:     The job listing URL to fetch.
-        timeout: Request timeout in seconds (default 10).
+def fetch_job_description(url: str, timeout: int = 15) -> str:
     """
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+    Fetch full job description text from a job listing URL.
+
+    For advertsdata.com URLs:
+      1. Opens Playwright browser (headless=False — headless detected as bot)
+      2. Navigates to tracking URL, waits 4s for PDF iframe to render
+      3. Finds frame URL matching dokuserver/anzeigen/...pdf pattern
+      4. Downloads PDF directly with urllib (no auth needed for dokuserver)
+      5. Extracts text with pypdf.PdfReader
+
+    For all other URLs:
+      Falls back to existing urllib HTML text extraction.
+
+    Returns empty string on failure — caller handles gracefully.
+    """
+    import io
+    import re as _re
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
         )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            charset = resp.headers.get_content_charset() or "utf-8"
-            raw = resp.read()
-        return _html_to_text(raw.decode(charset, errors="replace"))[:5000]
+    }
+
+    try:
+        if "advertsdata.com" in url:
+            # Step 1: use Playwright to discover PDF URL from iframe frame
+            from playwright.sync_api import sync_playwright
+            pdf_url = None
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=False)
+                pw_page = browser.new_page()
+                pw_page.goto(url, wait_until="networkidle", timeout=25_000)
+                pw_page.wait_for_timeout(4000)
+                for frame in pw_page.frames:
+                    if "dokuserver/anzeigen" in frame.url and frame.url.endswith(".pdf"):
+                        pdf_url = frame.url
+                        break
+                browser.close()
+
+            if not pdf_url:
+                return ""
+
+            # Step 2: download PDF — no auth needed for dokuserver URLs
+            pdf_req = urllib.request.Request(pdf_url, headers=headers)
+            with urllib.request.urlopen(pdf_req, timeout=timeout) as pdf_resp:
+                pdf_bytes = pdf_resp.read()
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(pdf_bytes))
+            text = "\n".join(pdf_page.extract_text() or "" for pdf_page in reader.pages)
+
+        else:
+            # Fallback: plain HTML extraction for non-advertsdata URLs
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                charset = resp.headers.get_content_charset() or "utf-8"
+                html = resp.read(200_000).decode(charset, errors="replace")
+            text = _html_to_text(html)
+
+        # Normalise whitespace
+        text = _re.sub(r"\n{3,}", "\n\n", text)
+        text = _re.sub(r" {2,}", " ", text)
+
+        # Truncate (increased from 5000 to 8000 — PDFs are longer)
+        if len(text) > 8000:
+            text = text[:8000] + "\n\n[truncated]"
+
+        return text.strip()
+
     except Exception:
-        return ""
+        return ""  # Caller checks for empty string and marks fetch_failed
