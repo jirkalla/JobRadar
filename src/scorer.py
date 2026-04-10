@@ -97,7 +97,7 @@ def check_location(result: dict, profile: dict) -> tuple[bool, str]:
     return False, f"Location not acceptable: {location} (remote_type: {remote_type})"
 
 
-def _failed_result(stub: JobStub, reason: str, jd_text: str = "") -> dict:
+def _failed_result(stub: JobStub, reason: str, jd_text: str = "", status: str = "new") -> dict:
     """Return a minimal result dict when scoring cannot proceed."""
     return {
         "company":       stub.company,
@@ -107,7 +107,7 @@ def _failed_result(stub: JobStub, reason: str, jd_text: str = "") -> dict:
         "language":      "en",
         "score":         0,
         "score_reason":  reason,
-        "status":        "new",
+        "status":        status,
         "source_eml":    None,
         "jd_text":       jd_text,
         "tech_stack":    "[]",
@@ -145,8 +145,8 @@ def score_job(
     """
     jd_text = fetch_job_description(stub.url)
 
-    if len(jd_text) < 300:
-        return _failed_result(stub, "Could not fetch job description")
+    if not jd_text:
+        return _failed_result(stub, "Could not fetch job description", status="fetch_failed")
 
     prompt = build_score_prompt(stub, jd_text, profile, prompt_template)
 

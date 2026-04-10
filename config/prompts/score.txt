@@ -16,21 +16,33 @@ Skills — Moved away from: {skills_moved_away}
 Target role types: {role_types}
 Roles to avoid:    {roles_avoid}
 
+Seniority: Jiri is a senior individual contributor (IC) with 20+ years of
+experience. He writes code and designs systems. He is NOT looking for
+people-management or pure team-lead roles where managing people is the
+primary responsibility.
+
 Working style and voice:
 {voice}
 
 --- SCORING GUIDANCE ---
 
-Rate relevance 1-10. Use the full range honestly.
+Rate relevance 1-10. Err on the side of lower scores — do not be generous.
 
-7-10  Genuinely worth applying. Strong skill match, right role type,
-      location is workable. Recommend = true.
+7-10  Genuinely worth applying. Strong match on the core required skills,
+      right role type, location is workable. Recommend = true.
 
 5-6   Marginal. Some match but notable concerns — wrong stack, stretch
       role, or location borderline. Flag it clearly. Recommend with caution.
 
 1-4   Poor fit. Wrong role type, wrong tech, or location is impossible.
       Still record it — do not skip low-scoring jobs.
+
+Score caps — apply these strictly before assigning any score:
+- If the job lists 2 or more required/must-have skills that are NOT in the
+  candidate's profile: score must be 5 or lower, regardless of other matches.
+- If the role is primarily people management (Führungskraft, team lead where
+  managing people outweighs writing code): score must be 4 or lower, and flag
+  it in concerns.
 
 Location rules:
 - Remote roles are acceptable anywhere.
