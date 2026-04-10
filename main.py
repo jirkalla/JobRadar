@@ -129,7 +129,7 @@ def _process_single_eml(
 ) -> None:
     """Parse, filter, score, and store one EML file."""
     from src.parser import parse_eml
-    from src.db import insert_job, job_exists_for_eml
+    from src.db import insert_job, job_exists_for_eml, find_similar_job
     filename = eml_path.name
     if job_exists_for_eml(filename):
         console.print(f"Already processed: {filename}")
@@ -140,6 +140,24 @@ def _process_single_eml(
         return
     _show_filter_table(stubs, console)
     kept, rejected = _quick_filter(stubs, console)
+
+    # Duplicate check — BEFORE scoring
+    deduped = []
+    for stub in kept:
+        existing = find_similar_job(stub.company, stub.title)
+        if existing:
+            console.print(f"\n[yellow]WARNING: Similar job already in DB:[/yellow]")
+            console.print(f"  {existing['role_title']} at {existing['company']}")
+            console.print(f"  Status: {existing['status']}  Score: {existing['score']}/10")
+            choice = input("  [S]kip / [K]eep as new / [V]iew full details: ").strip().lower()
+            if choice == "v":
+                console.print(f"  Score reason: {existing['score_reason']}")
+                choice = input("  [S]kip / [K]eep as new: ").strip().lower()
+            if choice == "s":
+                continue
+        deduped.append(stub)
+    kept = deduped
+
     console.print(f"\nKeeping [bold]{len(kept)}[/bold] jobs. Fetching and scoring... (this takes ~2 min)")
     results = _run_scoring(kept, profile, client, prompt_template, filename, console)
     n_saved = n_failed = 0
@@ -345,6 +363,25 @@ def cmd_generate(args: argparse.Namespace) -> None:
     print("Coming in Phase 3: generate CV and cover letter")
 
 
+def cmd_reset(args: argparse.Namespace) -> None:
+    """Wipe all job-related data from the database (test data reset)."""
+    from rich.console import Console
+    from src.db import init_db, reset_db
+    console = Console()
+
+    if not args.confirm:
+        console.print("[yellow]WARNING: This will delete all job data.[/yellow]")
+        console.print("Run: python main.py reset --confirm")
+        return
+
+    init_db()
+    console.print("Clearing database...")
+    counts = reset_db()
+    for table in ["jobs", "activity_log", "documents", "outcomes"]:
+        console.print(f"  {table}: {counts.get(table, 0)} rows deleted")
+    console.print("[green]Database cleared. Ready for real use.[/green]")
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     """Update the status of a job application."""
     print("Coming in Phase 4: update job status")
@@ -352,7 +389,34 @@ def cmd_status(args: argparse.Namespace) -> None:
 
 def cmd_report(args: argparse.Namespace) -> None:
     """Export an agency activity report for a date range."""
-    print("Coming in Phase 2: export agency report")
+    import sys
+    from datetime import datetime
+    from rich.console import Console
+    from src.report import generate_report
+
+    console = Console()
+
+    raw_from = input("Zeitraum Von (JJJJ-MM-TT): ").strip()
+    raw_to = input("Zeitraum Bis (JJJJ-MM-TT): ").strip()
+
+    try:
+        datetime.strptime(raw_from, "%Y-%m-%d")
+    except ValueError:
+        console.print(f"[red]Ungültiges Datum: '{raw_from}'. Format: JJJJ-MM-TT[/red]")
+        sys.exit(1)
+    try:
+        datetime.strptime(raw_to, "%Y-%m-%d")
+    except ValueError:
+        console.print(f"[red]Ungültiges Datum: '{raw_to}'. Format: JJJJ-MM-TT[/red]")
+        sys.exit(1)
+
+    date_from = raw_from.replace("-", "")
+    date_to = raw_to.replace("-", "")
+
+    pdf_path, csv_path, count = generate_report(date_from, date_to)
+    console.print(f"{count} Einträge gefunden.")
+    console.print(str(pdf_path))
+    console.print(str(csv_path))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -435,6 +499,17 @@ def build_parser() -> argparse.ArgumentParser:
         "report",
         help="export agency activity report for a date range (Phase 2)",
     ).set_defaults(func=cmd_report)
+
+    reset_parser = subparsers.add_parser(
+        "reset",
+        help="delete all job data from the database (use once to clear P1 test data)",
+    )
+    reset_parser.add_argument(
+        "--confirm",
+        action="store_true",
+        help="required flag — without it the command does nothing",
+    )
+    reset_parser.set_defaults(func=cmd_reset)
 
     return parser
 

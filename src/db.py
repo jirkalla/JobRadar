@@ -9,7 +9,7 @@ Rules:
 
 import re
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -51,7 +51,7 @@ def make_job_id(company: str, role: str, date: str) -> str:
     return f"{slugify(company)}-{slugify(role)}-{date}"
 
 
-def insert_job(data: dict) -> str:
+def insert_job(data: dict, source: str = "system", date_str: str | None = None) -> str:
     """Insert a new job record and log a 'scored' action. Return the job_id.
 
     Args:
@@ -59,8 +59,10 @@ def insert_job(data: dict) -> str:
               Optional: location, remote_type, language, score, score_reason,
               status, source_eml, jd_text, tech_stack, salary,
               strong_matches, concerns, notes.
+        source: 'system' (default) or 'manual' for backfill entries.
+        date_str: Date in YYYYMMDD format for the job ID. Defaults to today.
     """
-    date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+    date_str = date_str or datetime.now(timezone.utc).strftime("%Y%m%d")
     job_id = make_job_id(data.get("company") or "unknown", data.get("role_title") or "unknown", date_str)
     ts = now_iso()
 
@@ -71,12 +73,12 @@ def insert_job(data: dict) -> str:
                 id, company, role_title, location, remote_type, language,
                 score, score_reason, status, source_eml, jd_text,
                 tech_stack, salary, strong_matches, concerns, notes,
-                created_at, updated_at
+                created_at, updated_at, applied_at
             ) VALUES (
                 :id, :company, :role_title, :location, :remote_type, :language,
                 :score, :score_reason, :status, :source_eml, :jd_text,
                 :tech_stack, :salary, :strong_matches, :concerns, :notes,
-                :created_at, :updated_at
+                :created_at, :updated_at, :applied_at
             )
             """,
             {
@@ -98,11 +100,12 @@ def insert_job(data: dict) -> str:
                 "notes": data.get("notes"),
                 "created_at": ts,
                 "updated_at": ts,
+                "applied_at": date_str,
             },
         )
         conn.execute(
-            "INSERT INTO activity_log (job_id, action, ts) VALUES (?, 'scored', ?)",
-            (job_id, ts),
+            "INSERT INTO activity_log (job_id, action, ts, source) VALUES (?, 'scored', ?, ?)",
+            (job_id, ts, source),
         )
 
     return job_id
@@ -261,22 +264,28 @@ def record_outcome(
 
 
 def get_activity_report(date_from: str, date_to: str) -> list[dict]:
-    """Return activity log entries joined with job data for a date range.
+    """Return one row per job in the applied_at date range, with latest action.
 
     Args:
-        date_from: Start of range, UTC ISO string (inclusive).
-        date_to: End of range, UTC ISO string (inclusive).
+        date_from: Start of range in YYYYMMDD format (inclusive).
+        date_to: End of range in YYYYMMDD format (inclusive).
     """
     with get_conn() as conn:
         rows = conn.execute(
             """
             SELECT
-                a.ts, a.action, a.detail, a.source,
-                j.company, j.role_title, j.location, j.status, j.score
-            FROM activity_log a
-            LEFT JOIN jobs j ON a.job_id = j.id
-            WHERE a.ts >= ? AND a.ts <= ?
-            ORDER BY a.ts ASC
+                j.applied_at, j.company, j.role_title, j.location,
+                j.status, j.score,
+                a.action, a.detail, a.source
+            FROM jobs j
+            LEFT JOIN activity_log a ON a.job_id = j.id
+              AND a.action = (
+                  SELECT action FROM activity_log
+                  WHERE job_id = j.id
+                  ORDER BY ts DESC LIMIT 1
+              )
+            WHERE j.applied_at >= ? AND j.applied_at <= ?
+            ORDER BY j.applied_at ASC
             """,
             (date_from, date_to),
         ).fetchall()
@@ -324,7 +333,8 @@ def init_db() -> None:
                 concerns      TEXT,
                 notes         TEXT,
                 created_at    TEXT NOT NULL,
-                updated_at    TEXT NOT NULL
+                updated_at    TEXT NOT NULL,
+                applied_at    TEXT
             );
 
             CREATE TABLE IF NOT EXISTS activity_log (
@@ -356,3 +366,69 @@ def init_db() -> None:
                 created_at  TEXT NOT NULL
             );
         """)
+
+
+def job_exists_exact(company: str, role_title: str, date_str: str) -> bool:
+    """Return True if a job with exact company, role_title, and date already exists.
+
+    Args:
+        company: Company name to match exactly.
+        role_title: Role title to match exactly.
+        date_str: Date in YYYYMMDD format.
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM jobs WHERE company = ? AND role_title = ?"
+            " AND applied_at = ? LIMIT 1",
+            (company, role_title, date_str),
+        ).fetchone()
+    return row is not None
+
+
+def find_similar_job(company: str, role_title: str, days: int = 90) -> dict | None:
+    """Find an existing job with same company and similar role title within the last N days.
+
+    Args:
+        company: Company name to match exactly.
+        role_title: Role title to compare for word overlap.
+        days: Look-back window in days (default 90).
+
+    Returns:
+        The most recent matching job as a dict, or None if no match found.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT * FROM jobs
+            WHERE company = ?
+              AND created_at >= ?
+              AND status != 'rejected'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (company, cutoff),
+        ).fetchone()
+    if not row:
+        return None
+    # Check role similarity — at least one common significant word
+    stopwords = {"senior", "junior", "and", "or", "the", "in", "for", "m/f/d", "with"}
+    existing_words = set(row["role_title"].lower().split()) - stopwords
+    new_words = set(role_title.lower().split()) - stopwords
+    return dict(row) if existing_words & new_words else None
+
+
+def reset_db() -> dict:
+    """Delete all rows from job-related tables. Schema unchanged.
+
+    NOTE: Deleting from activity_log is a deliberate one-time exception
+    to the APPEND ONLY rule, used to wipe P1 test data. Do not reuse
+    this pattern elsewhere.
+    """
+    tables = ["outcomes", "documents", "activity_log", "jobs"]
+    counts = {}
+    with get_conn() as conn:
+        for table in tables:
+            cur = conn.execute(f"DELETE FROM {table}")
+            counts[table] = cur.rowcount
+    return counts

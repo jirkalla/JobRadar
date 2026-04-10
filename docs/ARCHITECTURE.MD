@@ -243,6 +243,7 @@ concerns           TEXT              -- JSON array
 notes              TEXT
 created_at         TEXT NOT NULL
 updated_at         TEXT NOT NULL
+applied_at         TEXT              -- YYYYMMDD — actual application date (from date_str on insert)
 
 Job status lifecycle:
   new → reviewed → approved → applied → responded → closed
