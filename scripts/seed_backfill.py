@@ -1,3 +1,4 @@
+# One-time data load — already executed. Do not run again unless DB is reset.
 """JobRadar — Seed backfill data.
 
 One-off script to load all real job applications and recruiter contacts

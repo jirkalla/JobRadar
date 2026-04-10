@@ -5,6 +5,7 @@ config/profile.yaml
 # Database and generated output
 data/tracker.db
 data/processed/
+inbox/
 output/
 
 # Personal documents (never commit)
@@ -22,6 +23,7 @@ venv/
 
 # VS Code
 .vscode/
+.claude/settings.local.json
 
 # OS
 .DS_Store

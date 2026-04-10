@@ -310,25 +310,59 @@ application date. This was added in a pre-P2.4 fix.
 When main.py prompts for the date range (YYYY-MM-DD input), strip the dashes
 before passing to get_activity_report: '2025-10-01' → '20251001'
 
+If either date input cannot be parsed with datetime.strptime(value, "%Y-%m-%d"),
+print a German error message and exit with sys.exit(1). Do not re-prompt.
+
 ========================================
 
 Critical constraints:
 - All column headers and labels in German (see ACTION_LABELS and STATUS_LABELS in task)
-- Manual entries show "(M)" marker in Aktion column
-- Personal data from config/profile.yaml — never hardcoded
+- cmd_report prompts must be in German:
+    Zeitraum Von (JJJJ-MM-TT): 
+    Zeitraum Bis (JJJJ-MM-TT): 
+- After generating, cmd_report must print exactly:
+    "{N} Einträge gefunden."
+  followed by the two file paths (PDF and CSV)
+- Manual entries show "(M)" marker in Aktion column.
+  Detect via: row.get('source') == 'manual'
+  get_activity_report() already returns source from activity_log.
+  If source is NULL (no activity_log row), treat as non-manual — no marker.
+- Personal data from config/profile.yaml — never hardcoded.
+  Use profile['personal']['name'] and profile['personal']['location'] as-is.
+  Note: location in the YAML is "Potsdam, Germany" — use that value verbatim.
 - reportlab for PDF — already in requirements.txt
-- Output filename: bericht_{from}_bis_{to}.pdf / .csv
+- Output filenames use the YYYYMMDD strings (date_from / date_to):
+    output/reports/bericht_{date_from}_bis_{date_to}.pdf
+    output/reports/bericht_{date_from}_bis_{date_to}.csv
+  Example: bericht_20251001_bis_20260228.pdf
+- report.py must create output/reports/ before writing:
+    Path("output/reports").mkdir(parents=True, exist_ok=True)
+- PDF pagination footer: show only "Seite {N}" per page.
+  Do NOT implement total page count ("von N") — out of scope.
+
+========================================
 
 After creating:
 - Run: python -m py_compile src/report.py
+  (expected: no output)
 - Run: python -m py_compile main.py
+  (expected: no output)
 - Run: python main.py report
-  Enter date range: 2025-10-01 to 2026-02-28
-- Expected output: "25 entries found"
-- Show me the output and confirm files were created in output/reports/
-- Open the PDF and confirm the Datum column shows real dates (e.g. 07.10.2025),
-  not today's date
+  Enter: 2025-10-01 for Von, 2026-02-28 for Bis
+  (expected output: "25 Einträge gefunden." + two file paths)
+- Verify the CSV dates are correct by running:
+  python -c "
+  import csv
+  with open('output/reports/bericht_20251001_bis_20260228.csv', encoding='utf-8') as f:
+      rows = list(csv.DictReader(f))
+  print(f'{len(rows)} rows')
+  print('First Datum:', rows[0]['Datum'])
+  print('Last Datum:', rows[-1]['Datum'])
+  "
+  (expected: 25 rows, dates like 07.10.2025 — NOT 10.04.2026)
+- Show me all terminal output above
 - Wait for my confirmation
+  (I will open the PDF manually to verify layout and dates)
 
 After I confirm:
 - Commit: feat(p2): add agency report export — PDF + CSV in German
