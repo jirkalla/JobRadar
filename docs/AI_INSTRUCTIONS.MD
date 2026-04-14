@@ -20,8 +20,8 @@ Tech stack:
   Database:     SQLite (single file: data/tracker.db)
   CLI:          Rich library for terminal UI
   Web UI:       FastAPI + Jinja2 templates (Phase 5)
-  Doc output:   python-docx for .docx generation
-  PDF output:   reportlab for agency report export
+  Doc output:   Markdown source + PDF via reportlab (no docx)
+  PDF output:   reportlab for both generated docs and agency reports
 
 Project owner: Jiri Vosta, Senior Software & Data Engineer, Potsdam/Berlin
 Languages: emails are mixed German/English — system handles both
@@ -99,9 +99,11 @@ Full schema: see /docs/ARCHITECTURE.md
 
 - config/profile.yaml — personal data, skills, restrictions, AI provider, voice
 - config/prompts/score.txt — scoring prompt template (user edits this)
-- config/prompts/generate.txt — generation prompt template (user edits this)
+- config/prompts/generate.txt — cover letter generation prompt (user edits this)
+- config/prompts/cv.txt — CV tailoring prompt (user edits this)
 - examples/letters/ — rated cover letters used as style examples
-- examples/cv_base.docx — master CV template
+- examples/cv_base.md — master CV in Markdown — source for tailoring
+- examples/ratings.json — letter ratings
 
 AI MUST read config/profile.yaml at runtime — never cache or hardcode values.
 If profile.yaml is missing a key, fail with a clear error message naming

@@ -39,26 +39,26 @@ P3 adds one new module and extends main.py:
 ## Progress
 
 - [x] Task P3.1 — src/generator.py (core generation logic)
-- [ ] Task P3.2 — main.py generate command
-- [ ] Task P3.3 — End-to-end test
-- [ ] Task P3.4 — Completion check + merge to main
+- [x] Task P3.2 — main.py generate command
+- [x] Task P3.3 — End-to-end test
+- [x] Task P3.4 — Completion check + merge to main
 
 ---
 
 ## Completion Checklist
 
-- [ ] `python -m py_compile src/generator.py` — no errors
-- [ ] `python -m py_compile main.py` — no errors
-- [ ] `python main.py generate` — shows list of approved jobs, user selects one
-- [ ] Cover letter generated without any banned phrase
-- [ ] CV changes panel shown before saving — Jiri confirms before file is written
-- [ ] Output folder created with correct naming convention
-- [ ] cv_YYYY-MM-DD_company.docx and cl_YYYY-MM-DD_company.docx saved
-- [ ] score.json and jd_snapshot.txt saved alongside documents
-- [ ] score.json contains job_id field
-- [ ] Rating prompt appears after document review
-- [ ] Rating saved to documents table in DB
-- [ ] Running generate twice for same job: prompts overwrite/v2/quit — never silently overwrites
+- [x] `python -m py_compile src/generator.py` — no errors
+- [x] `python -m py_compile main.py` — no errors
+- [x] `python main.py generate` — shows list of approved jobs, user selects one
+- [x] Cover letter generated without any banned phrase
+- [x] CV changes panel shown before saving — Jiri confirms before file is written
+- [x] Output folder created with correct naming convention
+- [x] cv_YYYY-MM-DD_company.docx and cl_YYYY-MM-DD_company.docx saved
+- [x] score.json and jd_snapshot.txt saved alongside documents
+- [x] score.json contains job_id field
+- [x] Rating prompt appears after document review
+- [x] Rating saved to documents table in DB
+- [x] Running generate twice for same job: prompts overwrite/v2/quit — never silently overwrites
 
 ---
 
@@ -446,7 +446,7 @@ Example:
 
 ## Task P3.2 — main.py generate command
 
-**Status:** [ ]
+**Status:** [x]
 **Files:**
 - `main.py` (EXTEND — replace `cmd_generate()` stub with real implementation)
 
@@ -782,7 +782,7 @@ else:
 
 ## Task P3.3 — End-to-end test
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** none — verification only
 
 **Pre-conditions — verify ALL before running any step:**
@@ -974,7 +974,7 @@ Confirm it no longer appears in the approved list.
 
 ## Task P3.4 — Completion check + merge to main
 
-**Status:** [ ]
+**Status:** [x]
 **Files:** `docs/MILESTONES.md` (status update only)
 
 **Steps in order:**
