@@ -241,25 +241,101 @@ def scan_inbox(inbox_dir: Path) -> list[Path]:
     return sorted(inbox_dir.glob("*.eml"))
 
 
-def fetch_job_description(url: str, timeout: int = 10) -> str:
-    """Fetch a full job description from a URL and return plain text.
+_PDF_URL_PATTERN = re.compile(
+    r'https://[^"\'>\s]+dokuserver/anzeigen/[^"\'>\s]+\.pdf'
+)
 
-    Uses stdlib urllib.request only — no requests library.
-    Returns empty string on any exception — never raises.
+_FETCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+    )
+}
+
+
+def _fetch_pdf_url_from_html(tracking_url: str, timeout: int) -> str | None:
+    """Strategy 1: fetch tracking page HTML and regex-search for PDF URL. Fast, no browser."""
+    try:
+        req = urllib.request.Request(tracking_url, headers=_FETCH_HEADERS)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            html = resp.read(500_000).decode(
+                resp.headers.get_content_charset() or "utf-8", errors="replace"
+            )
+        match = _PDF_URL_PATTERN.search(html)
+        if match:
+            return match.group(0)
+        js_match = re.search(
+            r'["\']([^"\']*dokuserver/anzeigen/[^"\']+\.pdf)["\']', html
+        )
+        return js_match.group(1) if js_match else None
+    except Exception:
+        return None
+
+
+def _fetch_pdf_url_from_browser(tracking_url: str) -> str | None:
+    """Strategy 2: open visible browser (headless=False) and find PDF iframe URL.
+
+    headless=True is detected as a bot — the PDF iframe never loads.
+    headless=False bypasses bot detection. Slower (~8s) but reliable.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=False)
+            page = browser.new_page()
+            page.goto(tracking_url, wait_until="networkidle", timeout=25_000)
+            page.wait_for_timeout(4000)
+            pdf_url = None
+            for frame in page.frames:
+                if "dokuserver/anzeigen" in frame.url and frame.url.endswith(".pdf"):
+                    pdf_url = frame.url
+                    break
+            if not pdf_url:
+                html = page.content()
+                match = _PDF_URL_PATTERN.search(html)
+                if match:
+                    pdf_url = match.group(0)
+            browser.close()
+            return pdf_url
+    except Exception:
+        return None
+
+
+def _download_pdf_text(pdf_url: str, timeout: int) -> str:
+    """Download a PDF and return extracted plain text. Returns empty string on failure."""
+    try:
+        import io
+        from pypdf import PdfReader
+        req = urllib.request.Request(pdf_url, headers=_FETCH_HEADERS)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            pdf_bytes = resp.read()
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        pages = [page.extract_text() or "" for page in reader.pages]
+        return "\n".join(pages)[:5000]
+    except Exception:
+        return ""
+
+
+def fetch_job_description(url: str, timeout: int = 15) -> str:
+    """Fetch a full job description from an advertsdata.com tracking URL.
+
+    Strategy 1 (fast): fetch tracking page HTML → regex-find embedded PDF URL →
+    download PDF → extract text with pypdf.
+
+    Strategy 2 (fallback): open visible Chromium browser → wait for PDF iframe →
+    extract PDF URL → same PDF download + pypdf extraction.
+    Used when Strategy 1 finds no PDF URL in the HTML source.
+
+    Returns empty string on total failure — never raises.
     Truncates output to 5000 characters.
 
     Args:
-        url:     The job listing URL to fetch.
-        timeout: Request timeout in seconds (default 10).
+        url:     The advertsdata.com tracking URL from the EML.
+        timeout: Request timeout in seconds (default 15).
     """
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
-        )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            charset = resp.headers.get_content_charset() or "utf-8"
-            raw = resp.read()
-        return _html_to_text(raw.decode(charset, errors="replace"))[:5000]
-    except Exception:
+    pdf_url = _fetch_pdf_url_from_html(url, timeout)
+    if not pdf_url:
+        pdf_url = _fetch_pdf_url_from_browser(url)
+    if not pdf_url:
         return ""
+    return _download_pdf_text(pdf_url, timeout)
