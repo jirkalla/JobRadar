@@ -15,13 +15,81 @@ Skills — Solid:  {skills_solid}
 Voice and working style:
 {voice}
 
+The voice section above describes writing style, tone, and register ONLY.
+Do not extract factual claims, project names, or experience examples from it.
+All concrete work examples must come from the skills sections and job listing only.
+
 --- JOB LISTING ---
 
 {job_text}
 
 --- STYLE EXAMPLES ---
 
+Below are up to 3 real cover letters written by {name}, each with a quality rating (1–5).
+Higher-rated letters are closer to the target style.
+
+Study them for:
+  - Paragraph length and rhythm (aim to match the higher-rated examples)
+  - How specific the claims are — real tools, real problems, real outcomes
+  - Sentence structure and register — formal but not stiff
+  - What is NOT in them: no enthusiasm performance, no soft claims
+
+Do not copy phrases or sentences. The style — not the content — is what transfers.
+
 {examples_section}
+
+--- TASK: ANALYSE BEFORE WRITING ---
+
+Before writing a single word of the letter, do this internally:
+
+1. Identify the 2–3 skills from the candidate profile that most directly match
+   what this job requires. These must anchor the letter — do not write around them.
+
+2. Find one concrete type of work from the candidate's skills that is genuinely
+   relevant to this role. This goes in paragraph 2 or 3 as a specific example —
+   not a vague claim. Do not invent experience not supported by the skills sections.
+
+3. Identify the language of the job listing: German or English.
+   The entire letter must be written in that language. Every word.
+
+4. If nothing in the job listing is genuinely interesting or specific, do not
+   pretend otherwise. Write a competent, neutral letter. Do not invent enthusiasm.
+
+--- PARAGRAPH STRUCTURE ---
+
+Write exactly 4 paragraphs. Each paragraph: 2–4 sentences. No more.
+
+  Paragraph 1 — Opening (2–3 sentences)
+    State what role you are writing about and the one most relevant thing
+    you bring to it. Must not start with "I". Must not be generic.
+    Bad: "Your company caught my attention as a leader in the field."
+    Good: "[X] years of [domain] work — the [role] at [company] is a direct match
+           for what I have been doing."
+
+  Paragraph 2 — Specific experience (3–4 sentences)
+    One concrete example anchored in the candidate's actual skills that is relevant
+    to this specific job. Name the tools, the problem type, the outcome. No vague claims.
+    Bad: "I have extensive experience with data pipelines."
+    Good: "Building [specific system type] using [skill from profile] to solve
+           [problem type this role describes] — that is the core of what I do."
+
+  Paragraph 3 — Why this role / this company (2–3 sentences)
+    Something specific about this job or company that makes it a genuine fit —
+    not flattery, not enthusiasm, just a real reason. If nothing stands out,
+    say clearly what aspect of the work you find substantive.
+
+  Paragraph 4 — Close (2 sentences)
+    Direct. No begging. State availability and next step.
+    Bad: "I would be thrilled to discuss this opportunity further."
+    Good: "Available for an interview at short notice. Happy to discuss specifics."
+
+--- GERMAN LANGUAGE RULES ---
+
+If the job listing is in German, write the entire letter in German.
+German business register applies: Sie-form, no contractions, slightly more formal
+than English equivalent — but still direct and specific. Do not translate the
+English tone literally; calibrate for German professional norms.
+Do not mix languages. If a technical term has a standard German equivalent, use it.
 
 --- BANNED PHRASES ---
 
@@ -42,25 +110,17 @@ If you find yourself writing any of these, rewrite the sentence from scratch.
   I believe I would be a great fit
   I have seen firsthand
   stabilizing force
-
---- STRUCTURE RULES ---
-
-- Maximum 4 short paragraphs. No more.
-- No bullet points. Prose only.
-- Body text only — no date, no address, no subject line, no sign-off.
-- The letter must be specific to this actual job listing.
-  Do not write anything that could apply to any job.
-- Do not start with "I". The first word of the letter must not be "I".
-- Write in {language}. Every word must be in {language}.
+  spannend, begeistert (German equivalents — also banned)
 
 --- TONE RULES ---
 
 - Direct. Write as someone who knows their worth and does not need to perform enthusiasm.
 - Age and experience are assets. Do not hide them. Do not apologise for them.
-  Do not say "despite my age" or anything like it.
-- Slightly dry is acceptable. A genuine opinion is better than a smooth phrase.
-- If something in the job listing is genuinely interesting, say why — specifically.
-  If nothing stands out, do not pretend otherwise.
+  Do not say "despite my age", "still learning", or anything self-diminishing.
+- A genuine opinion is better than a smooth phrase.
+- Do not pad. If something can be said in one sentence, use one sentence.
+- The letter should read like it was written by someone who has done this work,
+  not by someone who wants to sound like they have.
 
 --- OUTPUT ---
 
