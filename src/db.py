@@ -70,12 +70,12 @@ def insert_job(data: dict, source: str = "system", date_str: str | None = None) 
         conn.execute(
             """
             INSERT INTO jobs (
-                id, company, role_title, location, remote_type, language,
+                id, company, role_title, location, remote_type, url, language,
                 score, score_reason, status, source_eml, jd_text,
                 tech_stack, salary, strong_matches, concerns, notes,
                 created_at, updated_at, applied_at
             ) VALUES (
-                :id, :company, :role_title, :location, :remote_type, :language,
+                :id, :company, :role_title, :location, :remote_type, :url, :language,
                 :score, :score_reason, :status, :source_eml, :jd_text,
                 :tech_stack, :salary, :strong_matches, :concerns, :notes,
                 :created_at, :updated_at, :applied_at
@@ -87,6 +87,7 @@ def insert_job(data: dict, source: str = "system", date_str: str | None = None) 
                 "role_title": data["role_title"],
                 "location": data.get("location"),
                 "remote_type": data.get("remote_type"),
+                "url": data.get("url"),
                 "language": data.get("language", "en"),
                 "score": data.get("score"),
                 "score_reason": data.get("score_reason"),
@@ -100,7 +101,7 @@ def insert_job(data: dict, source: str = "system", date_str: str | None = None) 
                 "notes": data.get("notes"),
                 "created_at": ts,
                 "updated_at": ts,
-                "applied_at": date_str,
+                "applied_at": None,
             },
         )
         conn.execute(
@@ -111,23 +112,50 @@ def insert_job(data: dict, source: str = "system", date_str: str | None = None) 
     return job_id
 
 
-def update_job_status(job_id: str, status: str, notes: str | None = None) -> None:
+def update_job_status(job_id: str, status: str, notes: str | None = None, applied_at: str | None = None) -> None:
     """Update a job's status and append an entry to activity_log.
 
     Args:
         job_id: The job's primary key.
         status: New status value (e.g. 'approved', 'rejected', 'applied').
         notes: Optional free-text note stored on the job row.
+        applied_at: Date in YYYYMMDD format. Defaults to today when status is 'applied'.
     """
     ts = now_iso()
+    if status == "applied" and applied_at is None:
+        applied_at = datetime.now(timezone.utc).strftime("%Y%m%d")
     with get_conn() as conn:
         conn.execute(
-            "UPDATE jobs SET status = ?, updated_at = ?, notes = COALESCE(?, notes) WHERE id = ?",
-            (status, ts, notes, job_id),
+            "UPDATE jobs SET status = ?, updated_at = ?, notes = COALESCE(?, notes)"
+            ", applied_at = COALESCE(?, applied_at) WHERE id = ?",
+            (status, ts, notes, applied_at, job_id),
         )
         conn.execute(
             "INSERT INTO activity_log (job_id, action, detail, ts) VALUES (?, ?, ?, ?)",
             (job_id, status, notes, ts),
+        )
+
+
+def set_applied_at(job_id: str, date_str: str) -> None:
+    """Manually override the applied_at date for a job.
+
+    Args:
+        job_id: The job's primary key.
+        date_str: Date in YYYYMMDD format.
+    """
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE jobs SET applied_at = ?, updated_at = ? WHERE id = ?",
+            (date_str, now_iso(), job_id),
+        )
+
+
+def set_job_url(job_id: str, url: str) -> None:
+    """Set or update the url for a job row."""
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE jobs SET url = ?, updated_at = ? WHERE id = ?",
+            (url, now_iso(), job_id),
         )
 
 
@@ -321,6 +349,7 @@ def init_db() -> None:
                 role_title    TEXT NOT NULL,
                 location      TEXT,
                 remote_type   TEXT,
+                url           TEXT,
                 language      TEXT DEFAULT 'en',
                 score         INTEGER,
                 score_reason  TEXT,
@@ -366,6 +395,13 @@ def init_db() -> None:
                 created_at  TEXT NOT NULL
             );
         """)
+
+    # Migration: add url column if not present in existing DB
+    try:
+        with get_conn() as conn:
+            conn.execute("ALTER TABLE jobs ADD COLUMN url TEXT")
+    except sqlite3.OperationalError:
+        pass  # column already exists
 
 
 def job_exists_exact(company: str, role_title: str, date_str: str) -> bool:
