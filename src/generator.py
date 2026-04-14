@@ -6,6 +6,7 @@ No print() statements except the heading-not-found warning in apply_cv_changes()
 """
 
 import re
+from datetime import datetime
 from pathlib import Path
 
 from docx import Document
@@ -100,23 +101,22 @@ def build_cv_prompt(
 ) -> str:
     """Assemble the CV tailoring prompt.
 
+    Reads config/prompts/cv.txt at runtime — never cached.
+    Substitutes all {placeholders} with profile data.
     The AI must respond with JSON only — parsed by the caller via complete_json().
     """
-    skills_expert = ', '.join(profile['skills']['expert'])
-    skills_solid = ', '.join(profile['skills']['solid'])
+    prompt_path = Path('config/prompts/cv.txt')
+    if not prompt_path.exists():
+        raise FileNotFoundError("config/prompts/cv.txt not found.")
+    template = prompt_path.read_text(encoding='utf-8')
 
-    return (
-        f"You are tailoring a CV for a job application.\n\n"
-        f"CANDIDATE SKILLS:\n"
-        f"Expert: {skills_expert}\n"
-        f"Solid:  {skills_solid}\n\n"
-        f"BASE CV:\n{base_cv_text}\n\n"
-        f"JOB DESCRIPTION:\n{jd_text}\n\n"
-        f"Task: Propose targeted changes to the professional profile summary only.\n"
-        f"Preserve all dates, job titles, company names, and all other content exactly.\n"
-        f"skills_to_highlight and skills_to_remove are RECOMMENDATIONS for the human "
-        f"to apply manually — they will not be auto-applied to the document.\n\n"
-        f"Respond with JSON only. No markdown. No explanation."
+    return template.format(
+        name=profile['personal']['name'],
+        skills_expert=', '.join(profile['skills']['expert']),
+        skills_solid=', '.join(profile['skills']['solid']),
+        voice=profile['voice'],
+        base_cv_text=base_cv_text,
+        job_text=jd_text,
     )
 
 
@@ -155,8 +155,8 @@ def generate_cv_changes(
     Returns a dict with exactly these keys:
       profile_summary, skills_to_highlight, skills_to_remove, changes_explained
 
-    Internally calls extract_base_cv_text(Path('examples/cv_base.docx')) to
-    supply base_cv_text to build_cv_prompt(). If cv_base.docx is missing,
+    Internally calls extract_base_cv_text(Path('examples/cv_base.md')) to
+    supply base_cv_text to build_cv_prompt(). If cv_base.md is missing,
     FileNotFoundError propagates to the caller — do NOT catch it here.
 
     Raises ValueError if:
@@ -165,7 +165,7 @@ def generate_cv_changes(
 
     Does NOT catch any exceptions — let them propagate to the caller (main.py Step 4).
     """
-    base_cv_text = extract_base_cv_text(Path('examples/cv_base.docx'))
+    base_cv_text = extract_base_cv_text(Path('examples/cv_base.md'))
     prompt = build_cv_prompt(profile, jd_text, base_cv_text)
     result = complete_json(client, prompt)
 
@@ -178,17 +178,14 @@ def generate_cv_changes(
 
 
 def extract_base_cv_text(cv_path: Path) -> str:
-    """Extract plain text from examples/cv_base.docx for use in the CV prompt.
+    """Read plain text from examples/cv_base.md for use in the CV prompt.
 
-    Returns all non-empty paragraph texts joined with newlines.
     Raises FileNotFoundError if the file does not exist.
     Never modifies the source file.
     """
     if not cv_path.exists():
-        raise FileNotFoundError(f"CV file not found: {cv_path}")
-    doc = Document(cv_path)
-    lines = [p.text for p in doc.paragraphs if p.text.strip()]
-    return '\n'.join(lines)
+        raise FileNotFoundError(f"CV base not found: {cv_path}")
+    return cv_path.read_text(encoding='utf-8')
 
 
 def apply_cv_changes(
@@ -196,63 +193,168 @@ def apply_cv_changes(
     changes: dict,
     output_path: Path,
 ) -> None:
-    """Apply the AI-proposed profile summary to the base CV and save as a new .docx.
+    """Apply the AI-proposed profile summary to the base CV and save as new .md.
 
-    Only the profile summary paragraph is replaced. Skills changes are NOT
-    applied — they are recommendations for the user to apply manually.
-
-    Reads from cv_path. Writes to output_path. Never touches cv_base.docx.
+    Replaces the paragraph immediately after '## Professional Profile'.
+    All other content preserved exactly.
+    Profile summary must be a single unwrapped line in cv_base.md.
+    Reads from cv_path. Writes to output_path. Never touches cv_base.md.
     """
-    doc = Document(cv_path)
-    replace_next = False
+    lines = cv_path.read_text(encoding='utf-8').splitlines()
+    output_lines: list[str] = []
+    in_profile_section = False
     replaced = False
+    skip_until_next_content = False
 
-    for p in doc.paragraphs:
-        style_name = p.style.name
-        is_heading = (
-            style_name.lower().startswith('heading')
-            or 'berschrift' in style_name
-        )
+    for line in lines:
+        stripped = line.strip()
 
-        if replace_next and p.text.strip():
-            for run in p.runs:
-                run.text = ''
-            if p.runs:
-                p.runs[0].text = changes['profile_summary']
-            else:
-                p.add_run(changes['profile_summary'])
-            replace_next = False
-            replaced = True
-            break
+        # Detect the profile section heading
+        if stripped.lower() in ('## professional profile', '## profil'):
+            in_profile_section = True
+            skip_until_next_content = True
+            output_lines.append(line)
+            continue
 
-        if is_heading:
-            lower_text = p.text.lower()
-            if any(kw in lower_text for kw in ('profile', 'summary', 'about', 'profil')):
-                replace_next = True
+        # First non-empty, non-heading line after the profile heading
+        if in_profile_section and skip_until_next_content:
+            if stripped and not stripped.startswith('#'):
+                output_lines.append(changes['profile_summary'])
+                skip_until_next_content = False
+                in_profile_section = False
+                replaced = True
+                continue  # skip the old summary line
+            elif stripped.startswith('#'):
+                # Heading immediately after — no body paragraph found
+                skip_until_next_content = False
+                in_profile_section = False
+
+        output_lines.append(line)
 
     if not replaced:
-        doc.add_paragraph(changes['profile_summary'])
-        print("Warning: profile summary heading not found — summary appended. Review before sending.")
+        output_lines.append('')
+        output_lines.append(changes['profile_summary'])
+        print(
+            "Warning: '## Professional Profile' heading not found "
+            "— summary appended. Review before sending."
+        )
 
-    doc.save(output_path)
+    output_path.write_text('\n'.join(output_lines), encoding='utf-8')
 
 
 def write_cover_letter_docx(
     text: str,
     output_path: Path,
     profile: dict,
+    company: str,
+    date_str: str,
 ) -> None:
     """Write cover letter text to a .docx file.
 
-    Structure: name heading, blank line, body paragraphs split on double newline.
+    Structure: sender block, date, company, salutation, body, sign-off.
+    date_str: YYYYMMDD format.
     """
+    personal = profile['personal']
+    name = personal['name']
+    date_display = datetime.strptime(date_str, "%Y%m%d").strftime("%B %Y")
+    # Build day without leading zero (cross-platform)
+    day = str(datetime.strptime(date_str, "%Y%m%d").day)
+    month_year = datetime.strptime(date_str, "%Y%m%d").strftime("%B %Y")
+    date_display = f"{day} {month_year}"
+
     doc = Document()
-    doc.add_heading(profile['personal']['name'], level=1)
+
+    # Sender block
+    doc.add_paragraph(name)
+    doc.add_paragraph(f"{personal['email']}  ·  {personal['phone']}")
+    doc.add_paragraph(personal['location'])
     doc.add_paragraph('')
+
+    # Date and recipient
+    doc.add_paragraph(date_display)
+    doc.add_paragraph(company)
+    doc.add_paragraph('')
+
+    # Salutation
+    doc.add_paragraph(f"Dear {company} Team,")
+    doc.add_paragraph('')
+
+    # Body
     for chunk in text.split('\n\n'):
         if chunk.strip():
             doc.add_paragraph(chunk.strip())
+
+    # Sign-off
+    doc.add_paragraph('')
+    doc.add_paragraph('Best regards,')
+    doc.add_paragraph('')
+    doc.add_paragraph(name)
+
     doc.save(output_path)
+
+
+def write_cover_letter_md(
+    text: str,
+    output_path: Path,
+    body_path: Path,
+    profile: dict,
+    company: str,
+    date_str: str,
+    language: str = 'en',
+) -> None:
+    """Write cover letter to two .md files.
+
+    output_path — full letter with sender block and framing. Used for PDF.
+    body_path   — body paragraphs only. Used as style example in DB.
+
+    date_str: YYYYMMDD format.
+    Uses explicit <!-- SENDER_START/END --> delimiters so the PDF converter
+    never needs to guess structure.
+
+    Coupled to cover_letter_md_to_pdf() in src/pdf_writer.py — any structural
+    change here must be reflected there in the same commit.
+    """
+    personal = profile['personal']
+    name = personal['name']
+    day = str(datetime.strptime(date_str, "%Y%m%d").day)
+    month_year = datetime.strptime(date_str, "%Y%m%d").strftime("%B %Y")
+    date_display = f"{day} {month_year}"
+
+    if language == 'de':
+        salutation = "Sehr geehrte Damen und Herren,"
+        signoff = "Mit freundlichen Grüßen,"
+    else:
+        salutation = f"Dear {company} Team,"
+        signoff = "Best regards,"
+
+    # Normalise body — split on double newlines, strip each chunk
+    body_paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    body_text = '\n\n'.join(body_paragraphs)
+
+    # Full letter with explicit delimiters
+    full_lines = [
+        "<!-- SENDER_START -->",
+        f"**{name}**",
+        f"{personal['email']} \u00b7 {personal['phone']}",
+        f"{personal['location']}",
+        "<!-- SENDER_END -->",
+        "",
+        date_display,
+        "",
+        company,
+        "",
+        salutation,
+        "",
+        body_text,
+        "",
+        signoff,
+        "",
+        name,
+    ]
+    output_path.write_text('\n'.join(full_lines), encoding='utf-8')
+
+    # Body only — for example pool (no framing boilerplate)
+    body_path.write_text(body_text, encoding='utf-8')
 
 
 def make_output_dir(company: str, role_title: str, date_str: str) -> Path:
@@ -260,7 +362,7 @@ def make_output_dir(company: str, role_title: str, date_str: str) -> Path:
 
     Caller is responsible for mkdir().
 
-    Naming: output/{date_str}_{company-slug}_{role-slug}/
-    date_str format: YYYY-MM-DD
+    Naming: output/{date_str}/{company-slug}/
+    date_str format: YYYYMMDD
     """
-    return Path('output') / f"{date_str}_{_slugify(company)}_{_slugify(role_title)}"
+    return Path('output') / date_str / _slugify(company)
