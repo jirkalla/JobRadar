@@ -168,15 +168,28 @@ def complete_json(client: AnyClient, prompt: str) -> dict:
     raw = complete(client, prompt)
     text = raw.strip()
 
+    # Strip markdown code fences if present
     if text.startswith("```"):
         text = re.sub(r"^```[a-zA-Z]*\n?", "", text)
         text = re.sub(r"\n?```$", "", text.strip())
 
+    # Try direct parse first
     try:
         return json.loads(text)
-    except json.JSONDecodeError as exc:
-        snippet = raw[:200]
-        raise ValueError(
-            f"AI response is not valid JSON: {exc}\n"
-            f"Response snippet: {snippet!r}"
-        ) from exc
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: extract the outermost {...} block (handles preamble/postamble text)
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    snippet = raw[:200]
+    raise ValueError(
+        f"AI response is not valid JSON.\n"
+        f"Response snippet: {snippet!r}"
+    )
