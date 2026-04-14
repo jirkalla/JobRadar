@@ -16,39 +16,61 @@ Skills — Moved away from: {skills_moved_away}
 Target role types: {role_types}
 Roles to avoid:    {roles_avoid}
 
-Seniority: Jiri is a senior individual contributor (IC) with 20+ years of
-experience. He writes code and designs systems. He is NOT looking for
-people-management or pure team-lead roles where managing people is the
-primary responsibility.
-
-Working style and voice:
-{voice}
-
 --- SCORING GUIDANCE ---
 
-Rate relevance 1-10. Err on the side of lower scores — do not be generous.
+Rate relevance 1-10 based on skill and role fit only.
+Do NOT factor location into the score — location is assessed separately below.
+Use the full range honestly.
 
-7-10  Genuinely worth applying. Strong match on the core required skills,
-      right role type, location is workable. Recommend = true.
+7-10  Strong skill match, right role type. Recommend = true.
+      The candidate has done this kind of work with these tools.
 
-5-6   Marginal. Some match but notable concerns — wrong stack, stretch
-      role, or location borderline. Flag it clearly. Recommend with caution.
+5-6   Partial match. Some relevant skills but notable gaps — wrong primary
+      stack, stretch role, or role type the candidate avoids. Flag clearly.
 
-1-4   Poor fit. Wrong role type, wrong tech, or location is impossible.
-      Still record it — do not skip low-scoring jobs.
+1-4   Poor fit. Wrong role type, wrong tech stack, or role the candidate
+      explicitly avoids. Still score and record it — do not skip.
 
-Score caps — apply these strictly before assigning any score:
-- If the job lists 2 or more required/must-have skills that are NOT in the
-  candidate's profile: score must be 5 or lower, regardless of other matches.
-- If the role is primarily people management (Führungskraft, team lead where
-  managing people outweighs writing code): score must be 4 or lower, and flag
-  it in concerns.
+--- LOCATION ASSESSMENT ---
 
-Location rules:
-- Remote roles are acceptable anywhere.
-- Hybrid is acceptable ONLY in: {hybrid_cities}
-- Onsite-only roles are never acceptable — location_ok must be false.
-- If location_ok is false, recommended must be false regardless of score.
+Location and score are independent. Assess location_ok separately from relevance_score.
+
+remote_type extraction — map the job listing to one of these values:
+  "remote"  — listing says Remote, Homeoffice, fully distributed, or similar
+  "hybrid"  — listing says Hybrid, "Hybrides Arbeiten", partial Homeoffice,
+               or implies a mix of office and remote
+  "onsite"  — listing requires presence at a specific office location with
+               no remote option stated
+  "unclear" — listing does not address work location at all
+
+location_ok rules:
+  remote                                    → location_ok: true
+  hybrid AND city in {hybrid_cities}        → location_ok: true
+  hybrid AND city NOT in {hybrid_cities}    → location_ok: false
+  onsite                                    → location_ok: false (always)
+  unclear                                   → location_ok: false (err on side of caution)
+
+recommended: true only if location_ok is true AND relevance_score >= 7.
+If location_ok is false, recommended must be false regardless of relevance_score.
+
+--- FIELD GUIDANCE ---
+
+score_reason (exactly 2 sentences):
+  Sentence 1: the strongest skill or experience match.
+  Sentence 2: the biggest concern, gap, or red flag. If no concern, state
+              the second strongest match instead.
+
+strong_matches: list only skills or experience types that directly appear
+  in both the candidate profile AND the job listing requirements.
+  Do not list soft matches or general transferable skills.
+
+concerns: list concrete mismatches — wrong primary language, missing required
+  tool, role type the candidate avoids, seniority mismatch, etc.
+  Do not list location here — location has its own fields.
+
+tech_stack: list only technologies stated as requirements or strong preferences
+  in the job listing. Do not list every tool mentioned in passing.
+  Use the exact name as it appears in the listing.
 
 --- JOB LISTING ---
 
@@ -71,14 +93,14 @@ Return a JSON object with exactly these fields and no others:
   "remote_type": "remote | hybrid | onsite | unclear",
   "language": "de | en — language the job listing is written in",
   "relevance_score": 1-10,
-  "score_reason": "2 sentences max — why this score",
+  "score_reason": "Strong Python/ETL match against core requirements. No experience with the required Kubernetes stack.",
   "location_ok": true or false,
-  "location_reason": "brief explanation of location assessment",
-  "strong_matches": ["skill or experience that matches well", "..."],
-  "concerns": ["mismatch, gap, or red flag", "..."],
+  "location_reason": "one sentence — which rule applied and why",
+  "strong_matches": ["directly matched skill or experience", "..."],
+  "concerns": ["concrete mismatch or gap", "..."],
   "recommended": true or false,
   "salary_mentioned": "salary string if stated, or null",
-  "tech_stack": ["technology mentioned in listing", "..."]
+  "tech_stack": ["required or strongly preferred technology", "..."]
 }}
 
 Respond with JSON only. No markdown. No explanation.

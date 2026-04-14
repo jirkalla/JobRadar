@@ -11,6 +11,7 @@ output/
 # Personal documents (never commit)
 examples/letters/
 examples/cv_base.docx
+examples/cv_base.md
 examples/ratings.json
 
 # Python

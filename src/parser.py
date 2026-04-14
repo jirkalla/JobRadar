@@ -241,76 +241,101 @@ def scan_inbox(inbox_dir: Path) -> list[Path]:
     return sorted(inbox_dir.glob("*.eml"))
 
 
-def fetch_job_description(url: str, timeout: int = 15) -> str:
-    """
-    Fetch full job description text from a job listing URL.
+_PDF_URL_PATTERN = re.compile(
+    r'https://[^"\'>\s]+dokuserver/anzeigen/[^"\'>\s]+\.pdf'
+)
 
-    For advertsdata.com URLs:
-      1. Opens Playwright browser (headless=False — headless detected as bot)
-      2. Navigates to tracking URL, waits 4s for PDF iframe to render
-      3. Finds frame URL matching dokuserver/anzeigen/...pdf pattern
-      4. Downloads PDF directly with urllib (no auth needed for dokuserver)
-      5. Extracts text with pypdf.PdfReader
+_FETCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+    )
+}
 
-    For all other URLs:
-      Falls back to existing urllib HTML text extraction.
 
-    Returns empty string on failure — caller handles gracefully.
-    """
-    import io
-    import re as _re
-
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
-        )
-    }
-
+def _fetch_pdf_url_from_html(tracking_url: str, timeout: int) -> str | None:
+    """Strategy 1: fetch tracking page HTML and regex-search for PDF URL. Fast, no browser."""
     try:
-        if "advertsdata.com" in url:
-            # Step 1: use Playwright to discover PDF URL from iframe frame
-            from playwright.sync_api import sync_playwright
-            pdf_url = None
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=False)
-                pw_page = browser.new_page()
-                pw_page.goto(url, wait_until="networkidle", timeout=25_000)
-                pw_page.wait_for_timeout(4000)
-                for frame in pw_page.frames:
-                    if "dokuserver/anzeigen" in frame.url and frame.url.endswith(".pdf"):
-                        pdf_url = frame.url
-                        break
-                browser.close()
-
-            if not pdf_url:
-                return ""
-
-            # Step 2: download PDF — no auth needed for dokuserver URLs
-            pdf_req = urllib.request.Request(pdf_url, headers=headers)
-            with urllib.request.urlopen(pdf_req, timeout=timeout) as pdf_resp:
-                pdf_bytes = pdf_resp.read()
-            from pypdf import PdfReader
-            reader = PdfReader(io.BytesIO(pdf_bytes))
-            text = "\n".join(pdf_page.extract_text() or "" for pdf_page in reader.pages)
-
-        else:
-            # Fallback: plain HTML extraction for non-advertsdata URLs
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                charset = resp.headers.get_content_charset() or "utf-8"
-                html = resp.read(200_000).decode(charset, errors="replace")
-            text = _html_to_text(html)
-
-        # Normalise whitespace
-        text = _re.sub(r"\n{3,}", "\n\n", text)
-        text = _re.sub(r" {2,}", " ", text)
-
-        # Truncate (increased from 5000 to 8000 — PDFs are longer)
-        if len(text) > 8000:
-            text = text[:8000] + "\n\n[truncated]"
-
-        return text.strip()
-
+        req = urllib.request.Request(tracking_url, headers=_FETCH_HEADERS)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            html = resp.read(500_000).decode(
+                resp.headers.get_content_charset() or "utf-8", errors="replace"
+            )
+        match = _PDF_URL_PATTERN.search(html)
+        if match:
+            return match.group(0)
+        js_match = re.search(
+            r'["\']([^"\']*dokuserver/anzeigen/[^"\']+\.pdf)["\']', html
+        )
+        return js_match.group(1) if js_match else None
     except Exception:
-        return ""  # Caller checks for empty string and marks fetch_failed
+        return None
+
+
+def _fetch_pdf_url_from_browser(tracking_url: str) -> str | None:
+    """Strategy 2: open visible browser (headless=False) and find PDF iframe URL.
+
+    headless=True is detected as a bot — the PDF iframe never loads.
+    headless=False bypasses bot detection. Slower (~8s) but reliable.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=False)
+            page = browser.new_page()
+            page.goto(tracking_url, wait_until="networkidle", timeout=25_000)
+            page.wait_for_timeout(4000)
+            pdf_url = None
+            for frame in page.frames:
+                if "dokuserver/anzeigen" in frame.url and frame.url.endswith(".pdf"):
+                    pdf_url = frame.url
+                    break
+            if not pdf_url:
+                html = page.content()
+                match = _PDF_URL_PATTERN.search(html)
+                if match:
+                    pdf_url = match.group(0)
+            browser.close()
+            return pdf_url
+    except Exception:
+        return None
+
+
+def _download_pdf_text(pdf_url: str, timeout: int) -> str:
+    """Download a PDF and return extracted plain text. Returns empty string on failure."""
+    try:
+        import io
+        from pypdf import PdfReader
+        req = urllib.request.Request(pdf_url, headers=_FETCH_HEADERS)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            pdf_bytes = resp.read()
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        pages = [page.extract_text() or "" for page in reader.pages]
+        return "\n".join(pages)[:5000]
+    except Exception:
+        return ""
+
+
+def fetch_job_description(url: str, timeout: int = 15) -> str:
+    """Fetch a full job description from an advertsdata.com tracking URL.
+
+    Strategy 1 (fast): fetch tracking page HTML → regex-find embedded PDF URL →
+    download PDF → extract text with pypdf.
+
+    Strategy 2 (fallback): open visible Chromium browser → wait for PDF iframe →
+    extract PDF URL → same PDF download + pypdf extraction.
+    Used when Strategy 1 finds no PDF URL in the HTML source.
+
+    Returns empty string on total failure — never raises.
+    Truncates output to 5000 characters.
+
+    Args:
+        url:     The advertsdata.com tracking URL from the EML.
+        timeout: Request timeout in seconds (default 15).
+    """
+    pdf_url = _fetch_pdf_url_from_html(url, timeout)
+    if not pdf_url:
+        pdf_url = _fetch_pdf_url_from_browser(url)
+    if not pdf_url:
+        return ""
+    return _download_pdf_text(pdf_url, timeout)

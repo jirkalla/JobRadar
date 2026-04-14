@@ -1,0 +1,85 @@
+You are tailoring a CV for a job application on behalf of {name}.
+
+Your task is to propose a rewritten Professional Profile summary that better
+matches the job description. Nothing else changes.
+
+--- CANDIDATE SKILLS ---
+
+Expert: {skills_expert}
+Solid:  {skills_solid}
+
+--- CANDIDATE VOICE ---
+
+{voice}
+
+The voice section above describes writing style and register ONLY.
+Do not extract factual claims or specific project names from it.
+Use it to calibrate tone: direct, specific, no corporate filler.
+The profile summary must sound like the same person who wrote the voice section.
+
+--- BASE CV ---
+
+{base_cv_text}
+
+--- JOB DESCRIPTION ---
+
+{job_text}
+
+--- TASK ---
+
+Rewrite the Professional Profile summary section only.
+Preserve all dates, job titles, company names, and all other content exactly.
+The new summary must be grounded in the skills listed above.
+Do not invent experience or tools not present in the skills sections.
+
+Write in impersonal style — no subject pronoun, not third person.
+Bad:  "Jiri is a Senior Engineer with extensive experience in..."
+Bad:  "He brings a comprehensive approach to..."
+Good: "Twelve years building backend systems and data infrastructure..."
+Good: "The work has always sat at the boundary between software and data engineering —"
+
+Write exactly 3 sentences:
+  Sentence 1: what kind of engineer {name} is — specific, not generic.
+              Anchor it in years, domain, and scale. No adjectives that don't earn their place.
+  Sentence 2: the most relevant skill or experience match for this specific role.
+              Name the tools or problem type. Do not write anything that could apply to any engineer.
+  Sentence 3: one technical or domain-specific detail genuinely relevant to this role
+              and not already covered in sentences 1–2.
+              If nothing stands out, do not pad — make sentence 2 stronger instead.
+
+skills_to_highlight and skills_to_remove are recommendations for the human
+to apply manually — they will not be auto-applied.
+
+--- BANNED PHRASES ---
+
+Do not use any of the following. If you find yourself writing one, rewrite from scratch.
+
+  extensive experience
+  robust, robustness
+  comprehensive, comprehensively
+  bridging, bridge between
+  honed, honed over
+  enables, enabling
+  governance (unless it appears in the job description)
+  rigor, rigour
+  dual background
+  proven track record
+  results-driven, detail-oriented
+  passionate, excited, thrilled
+  innovative, dynamic
+  leverage, leveraging
+  I am confident that
+  I would like to apply
+
+--- REQUIRED OUTPUT ---
+
+Return a JSON object with exactly these keys and no others:
+
+{{
+  "profile_summary": "full rewritten profile summary, exactly 3 sentences, impersonal style",
+  "skills_to_highlight": ["skill directly required by this JD", "..."],
+  "skills_to_remove": ["skill not relevant to this JD", "..."],
+  "changes_explained": "one sentence: what changed and why"
+}}
+
+JSON only. No markdown. No explanation. No additional keys.

@@ -49,7 +49,6 @@ def build_score_prompt(
         role_types=join(prefs.get("role_types", [])),
         roles_avoid=join(prefs.get("avoid", [])),
         hybrid_cities=join(restrictions.get("hybrid_cities", [])),
-        voice=profile.get("voice", ""),
         job_text=jd_text,
     )
 
@@ -104,6 +103,7 @@ def _failed_result(stub: JobStub, reason: str, jd_text: str = "", status: str = 
         "role_title":    stub.title,
         "location":      stub.location,
         "remote_type":   "unclear",
+        "url":           stub.url,
         "language":      "en",
         "score":         0,
         "score_reason":  reason,
@@ -145,7 +145,7 @@ def score_job(
     """
     jd_text = fetch_job_description(stub.url)
 
-    if not jd_text:
+    if len(jd_text) < 300:
         return _failed_result(stub, "Could not fetch job description", status="fetch_failed")
 
     prompt = build_score_prompt(stub, jd_text, profile, prompt_template)
@@ -168,6 +168,7 @@ def score_job(
         "score_reason":   result.get("score_reason", ""),
         "status":         "new",
         "source_eml":     None,
+        "url":            stub.url,
         "jd_text":        jd_text,
         "tech_stack":     json.dumps(result.get("tech_stack") or []),
         "salary":         result.get("salary_mentioned"),

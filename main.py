@@ -5,11 +5,14 @@ contains business logic. All real work is done in src/ modules.
 """
 
 import argparse
+import json
 import shutil
 from pathlib import Path
 
 from dotenv import load_dotenv
 load_dotenv()
+
+from src.pdf_writer import cv_md_to_pdf, cover_letter_md_to_pdf
 
 
 VERSION = "job-tracker v0.1.0"
@@ -28,6 +31,18 @@ def load_profile() -> dict:
         )
     import yaml
     return yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+
+
+def _parse_json_field(value) -> list:
+    """Safely parse a DB field that may be None, a list, or a JSON string."""
+    if not value:
+        return []
+    if isinstance(value, list):
+        return value
+    try:
+        return json.loads(value)
+    except (ValueError, TypeError):
+        return []
 
 
 def _show_filter_table(stubs: list, console: object) -> None:
@@ -360,7 +375,246 @@ def cmd_fetch(args: argparse.Namespace) -> None:
 
 def cmd_generate(args: argparse.Namespace) -> None:
     """Generate a tailored CV and cover letter for an approved job."""
-    print("Coming in Phase 3: generate CV and cover letter")
+    import json
+    from datetime import datetime, timezone
+    from pathlib import Path
+    from rich.console import Console
+    from rich.panel import Panel
+    from src.db import (
+        init_db, get_jobs, get_job,
+        save_document, rate_document,
+        log_action, update_job_status,
+    )
+    from src.ai_client import get_client
+    from src import generator
+    from src.generator import _slugify
+
+    console = Console()
+    try:
+        profile = load_profile()
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return
+    init_db()
+
+    # Step 1 — Select job
+    if args.job_id:
+        job = get_job(args.job_id)
+        if job is None:
+            console.print(f"[red]Job not found: {args.job_id}[/red]")
+            return
+        if job['status'] != 'approved':
+            console.print(f"[red]Job status is '{job['status']}' — only approved jobs can be generated.[/red]")
+            return
+    else:
+        jobs = get_jobs(status='approved')
+        if not jobs:
+            console.print("[yellow]No approved jobs. Run: python main.py review[/yellow]")
+            return
+        from rich.table import Table
+        table = Table(title=f"{len(jobs)} approved jobs")
+        table.add_column("#", style="dim", width=4)
+        table.add_column("Company", max_width=22)
+        table.add_column("Role", max_width=40)
+        table.add_column("Score", width=6, justify="center")
+        table.add_column("Location", max_width=22)
+        table.add_column("Created", width=12)
+        for i, j in enumerate(jobs, 1):
+            score = j.get("score", 0) or 0
+            if score >= 7:
+                score_cell = f"[green]{score}[/green]"
+            elif score >= 5:
+                score_cell = f"[yellow]{score}[/yellow]"
+            else:
+                score_cell = f"[red]{score}[/red]"
+            table.add_row(
+                str(i),
+                (j.get("company") or "")[:22],
+                (j.get("role_title") or "")[:40],
+                score_cell,
+                (j.get("location") or "")[:22],
+                (j.get("created_at") or "")[:10],
+            )
+        console.print(table)
+        raw = input("Enter job number to generate documents (or 'q' to quit): ").strip().lower()
+        if raw == 'q':
+            return
+        if not raw.isdigit() or not (1 <= int(raw) <= len(jobs)):
+            raw = input("Invalid. Enter job number (or 'q'): ").strip().lower()
+            if raw == 'q' or not raw.isdigit() or not (1 <= int(raw) <= len(jobs)):
+                return
+        job = get_job(jobs[int(raw) - 1]['id'])
+
+    # Step 2 — Validate jd_text
+    if not job.get('jd_text'):
+        console.print("[red]No job description stored for this job. Cannot generate.[/red]")
+        console.print("Tip: this job may have been entered via backfill. Run fetch+process for a scored job.")
+        return
+
+    # Step 3 — Generate cover letter
+    try:
+        client = get_client(profile)
+    except EnvironmentError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return
+
+    cl_text = None
+    banned_error = None
+    for attempt in range(1, 4):
+        with console.status(f"Generating cover letter (attempt {attempt}/3)..."):
+            try:
+                cl_text = generator.generate_cover_letter(
+                    client, profile, job['jd_text'], job.get('language', 'en')
+                )
+                break
+            except ValueError as exc:
+                banned_error = str(exc)
+        # spinner has stopped — safe to print and accept input
+        if cl_text is None:
+            console.print(f"[red]{banned_error}[/red]")
+            if attempt == 3:
+                console.print("[red]Could not produce a clean letter after 3 attempts. Quit and edit manually.[/red]")
+                return
+            choice = input("[Y] Try again / [Q] Quit: ").strip().lower()
+            if choice != 'y':
+                return
+
+    console.print(Panel(cl_text, title=f"Cover Letter — {job['company']}", expand=False))
+
+    # Step 4 — Generate CV changes
+    cv_changes = None
+    with console.status("Generating CV tailoring suggestions..."):
+        try:
+            cv_changes = generator.generate_cv_changes(client, profile, job['jd_text'])
+        except FileNotFoundError:
+            console.print("[red]examples/cv_base.md not found — skipping CV tailoring.[/red]")
+        except ValueError as exc:
+            console.print(f"[red]AI returned invalid response for CV changes. Skipping CV tailoring.[/red]")
+            console.print(f"[dim]{exc}[/dim]")
+
+    if cv_changes is not None:
+        lines = [
+            f"Summary:   {cv_changes['profile_summary']}",
+            f"Highlight: {', '.join(cv_changes['skills_to_highlight'])}",
+            f"Remove:    {', '.join(cv_changes['skills_to_remove'])}",
+            f"Why:       {cv_changes['changes_explained']}",
+            "",
+            "Note: skills changes are recommendations — apply them manually to the saved CV.",
+        ]
+        console.print(Panel('\n'.join(lines), title=f"Proposed CV Changes — {job['company']}", expand=False))
+
+    # Step 5 — Confirm before saving
+    console.print("\nReview the output above.")
+    if cv_changes is not None:
+        prompt = "[S] Save both / [C] Cover letter only / [Q] Quit without saving: "
+        valid = {'s', 'c', 'q'}
+    else:
+        prompt = "[C] Save cover letter / [Q] Quit without saving: "
+        valid = {'c', 'q'}
+
+    while True:
+        save_choice = input(prompt).strip().lower()
+        if save_choice in valid:
+            break
+        console.print(f"[yellow]Please enter one of: {', '.join(sorted(valid)).upper()}[/yellow]")
+
+    if save_choice == 'q':
+        console.print("Nothing saved.")
+        return
+
+    # Step 6 — Overwrite check and save
+    today_date = datetime.now(timezone.utc).strftime('%Y%m%d')
+    date_input = input(f"Output date (YYYYMMDD) [{today_date}]: ").strip()
+    applied_date = date_input if (date_input and date_input.isdigit() and len(date_input) == 8) else today_date
+    output_dir = generator.make_output_dir(job['company'], job['role_title'], applied_date)
+    cl_doc_id: int | None = None   # must be initialised here — Step 7 checks it
+
+    if output_dir.exists():
+        console.print(f"[yellow]Output folder already exists: {output_dir}[/yellow]")
+        ow = input("[O] Overwrite / [V] Save as new version / [Q] Quit: ").strip().lower()
+        if ow == 'q':
+            console.print("Nothing saved.")
+            return
+        elif ow == 'v':
+            base = str(output_dir)
+            for n in range(2, 10):
+                candidate = Path(f"{base}_v{n}")
+                if not candidate.exists():
+                    output_dir = candidate
+                    break
+            else:
+                console.print("[red]Too many versions already exist. Clean up output/ manually.[/red]")
+                return
+        # 'o' → proceed with existing output_dir, files will be overwritten
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    company_slug = _slugify(job['company'])
+
+    # Always write these two files
+    (output_dir / 'jd_snapshot.txt').write_text(job['jd_text'] or '', encoding='utf-8')
+
+    score_data = {
+        'job_id':         job['id'],
+        'score':          job['score'],
+        'score_reason':   job['score_reason'],
+        'strong_matches': _parse_json_field(job.get('strong_matches')),
+        'concerns':       _parse_json_field(job.get('concerns')),
+        'tech_stack':     _parse_json_field(job.get('tech_stack')),
+        'salary':         job.get('salary'),
+        'generated_at':   datetime.now(timezone.utc).isoformat(),
+    }
+    (output_dir / 'score.json').write_text(
+        json.dumps(score_data, indent=2, ensure_ascii=False), encoding='utf-8'
+    )
+
+    # Save cover letter (save_choice 's' or 'c')
+    cl_md_path   = output_dir / f"cl_{applied_date}_{company_slug}.md"
+    cl_pdf_path  = output_dir / f"cl_{applied_date}_{company_slug}.pdf"
+    cl_body_path = output_dir / f"cl_{applied_date}_{company_slug}_body.md"
+    generator.write_cover_letter_md(
+        cl_text, cl_md_path, cl_body_path,
+        profile, job['company'], applied_date, job.get('language', 'en'),
+    )
+    cover_letter_md_to_pdf(cl_md_path, cl_pdf_path)
+    cl_doc_id = save_document(job['id'], 'cover_letter', str(cl_body_path))
+    console.print(f"[green]Cover letter saved: {cl_md_path}[/green]")
+    console.print(f"[green]Cover letter PDF: {cl_pdf_path}[/green]")
+
+    # Save CV (save_choice 's' only, and cv_changes is not None)
+    if save_choice == 's' and cv_changes is not None:
+        cv_base = Path('examples/cv_base.md')
+        if not cv_base.exists():
+            console.print("[red]examples/cv_base.md not found — skipping CV save.[/red]")
+        else:
+            cv_md_path  = output_dir / f"cv_{applied_date}_{company_slug}.md"
+            cv_pdf_path = output_dir / f"cv_{applied_date}_{company_slug}.pdf"
+            generator.apply_cv_changes(cv_base, cv_changes, cv_md_path)
+            cv_md_to_pdf(cv_md_path, cv_pdf_path)
+            save_document(job['id'], 'cv', str(cv_md_path))
+            console.print(f"[green]CV saved: {cv_md_path}[/green]")
+            console.print(f"[green]CV PDF: {cv_pdf_path}[/green]")
+
+    log_action(job['id'], 'generated', detail=str(output_dir))
+
+    # Step 7 — Rate the cover letter
+    if cl_doc_id is not None:
+        rating_input = input("Rate this cover letter 1-5 (or press Enter to skip): ").strip()
+        if rating_input.isdigit() and 1 <= int(rating_input) <= 5:
+            rate_document(cl_doc_id, int(rating_input))
+            if int(rating_input) >= 4:
+                console.print("[green]Letter added to example pool for future generations.[/green]")
+            else:
+                console.print("Rating saved.")
+        else:
+            console.print("Rating skipped.")
+
+    # Step 8 — Update job status
+    apply_choice = input("Mark this job as applied? [Y/N]: ").strip().lower()
+    if apply_choice == 'y':
+        update_job_status(job['id'], 'applied', applied_at=applied_date)
+        console.print("[green]Job status updated to 'applied'.[/green]")
+    else:
+        console.print("Status unchanged (still 'approved').")
 
 
 def cmd_reset(args: argparse.Namespace) -> None:

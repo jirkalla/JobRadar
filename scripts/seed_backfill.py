@@ -6,6 +6,10 @@ into the database. Calls db.py only. All entries: source='manual'.
 Safe to run multiple times — duplicates are skipped.
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from src import db
 
 JOBS = [

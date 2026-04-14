@@ -1,5 +1,5 @@
 # Architecture — JobRadar
-## v1.2 | March 2026
+## v1.3 | April 2026
 
 ======================================================================
 1. SYSTEM OVERVIEW
@@ -30,7 +30,8 @@ JobRadar/
 │   ├── profile.yaml.example  Placeholder template — committed
 │   └── prompts/
 │       ├── score.txt         Scoring prompt template (user-editable)
-│       └── generate.txt      Generation prompt template (user-editable)
+│       ├── generate.txt      Cover letter generation prompt (user-editable)
+│       └── cv.txt            CV tailoring prompt (user-editable)
 │
 ├── src/
 │   ├── fetcher.py            Forpsi IMAP — download job digest emails to inbox/
@@ -38,6 +39,7 @@ JobRadar/
 │   ├── parser.py             EML parsing — Infoagent digest format
 │   ├── scorer.py             AI scoring + location validation
 │   ├── generator.py          CV + cover letter generation — calls ai_client
+│   ├── pdf_writer.py         Markdown → PDF conversion — reportlab only
 │   ├── db.py                 All SQLite operations
 │   └── report.py             Agency report export (PDF + CSV)
 │
@@ -46,7 +48,7 @@ JobRadar/
 │   └── templates/            Jinja2 HTML templates (Phase 5)
 │
 ├── examples/
-│   ├── cv_base.docx          Master CV template
+│   ├── cv_base.md            Master CV in Markdown — source for tailoring
 │   ├── letters/              Rated cover letters (style examples)
 │   └── ratings.json          Letter ratings 1-5
 │
@@ -56,9 +58,12 @@ JobRadar/
 │   └── processed/            EML files moved here after processing
 │
 ├── output/                   Generated documents
-│   ├── YYYY-MM-DD_company-role/
-│   │   ├── cv_YYYY-MM-DD_company.docx
-│   │   ├── cl_YYYY-MM-DD_company.docx
+│   ├── YYYYMMDD_company-role/
+│   │   ├── cv_YYYYMMDD_company.md    CV Markdown source
+│   │   ├── cv_YYYYMMDD_company.pdf   CV print-ready PDF
+│   │   ├── cl_YYYYMMDD_company.md    Cover letter with header
+│   │   ├── cl_YYYYMMDD_company_body.md  Body only (DB example pool)
+│   │   ├── cl_YYYYMMDD_company.pdf   Cover letter print-ready PDF
 │   │   ├── jd_snapshot.txt   Job description at time of application
 │   │   └── score.json        AI score and reasoning
 │   └── reports/              Agency export files
@@ -82,6 +87,7 @@ except as listed here:
     → scorer.py       (AI score + location validation)
     → db.py           (read/write jobs, activity, documents)
     → generator.py    (generate CV + cover letter)
+    → pdf_writer.py   (convert Markdown output to PDF)
     → report.py       (export agency report)
 
   backfill.py
@@ -95,9 +101,13 @@ except as listed here:
     → reads config/profile.yaml and config/prompts/score.txt
 
   generator.py
-    → ai_client.py    (complete)
+    → ai_client.py    (complete, complete_json)
     → db.py           (get_example_letters)
-    → reads config/profile.yaml and config/prompts/generate.txt
+    → reads config/profile.yaml, config/prompts/generate.txt, config/prompts/cv.txt
+    → reads examples/cv_base.md (CV tailoring source)
+
+  pdf_writer.py
+    → no src/ imports — reportlab only
 
   parser.py
     → no src/ imports — stdlib + pypdf only
@@ -318,9 +328,12 @@ showing exactly which variable to set and how (Windows + PowerShell).
 ======================================================================
 
 Generated documents:
-  output/{YYYY-MM-DD}_{company-slug}_{role-slug}/
-    cv_{YYYY-MM-DD}_{company-slug}.docx
-    cl_{YYYY-MM-DD}_{company-slug}.docx
+  output/{YYYYMMDD}_{company-slug}_{role-slug}/
+    cv_{YYYYMMDD}_{company-slug}.md       Markdown source
+    cv_{YYYYMMDD}_{company-slug}.pdf      Print-ready PDF
+    cl_{YYYYMMDD}_{company-slug}.md       Cover letter with header
+    cl_{YYYYMMDD}_{company-slug}_body.md  Body only (saved to DB example pool)
+    cl_{YYYYMMDD}_{company-slug}.pdf      Print-ready PDF
     jd_snapshot.txt
     score.json
 

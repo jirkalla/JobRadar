@@ -17,7 +17,7 @@
 | P1 | Parse + Score | ✅ Done | Digest parser, URL fetcher, AI scorer, ranked terminal list |
 | P2 | Backfill + Report | ✅ Done | Manual entry wizard, agency PDF/CSV export — URGENT |
 | fix | PDF Extraction | ✅ Done | Playwright fetch for advertsdata.com, fetch_failed status, tighter scoring prompt |
-| P3 | Generate Documents | ⏳ Planned | CV tailoring, cover letter, versioned .docx output |
+| P3 | Generate Documents | ✅ Done | CV tailoring, cover letter, versioned .docx output |
 | P4 | Learning Loop | ⏳ Planned | Ratings feed examples, outcome tracking, quality improvement |
 | P5 | Web UI | ⏳ Planned | FastAPI dashboard — all controls in browser |
 
