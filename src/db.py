@@ -276,7 +276,7 @@ def record_outcome(
     reply_date: str | None = None,
     notes: str | None = None,
 ) -> None:
-    """Record the outcome of a job application.
+    """Record outcome. Updates job status and logs to activity_log.
 
     Args:
         job_id: The related job's primary key.
@@ -284,11 +284,82 @@ def record_outcome(
         reply_date: Optional date of the reply (ISO string).
         notes: Optional free-text notes.
     """
+    VALID = {'no_reply', 'rejection', 'positive', 'interview', 'offer'}
+    if reply_type not in VALID:
+        raise ValueError(f"Invalid reply_type: {reply_type!r}. Must be one of {VALID}")
+
+    STATUS_MAP = {
+        'no_reply':  'closed',
+        'rejection': 'closed',
+        'positive':  'responded',
+        'interview': 'interview',
+        'offer':     'offer',
+    }
+    ts = now_iso()
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO outcomes (job_id, reply_type, reply_date, notes, created_at) VALUES (?, ?, ?, ?, ?)",
-            (job_id, reply_type, reply_date, notes, now_iso()),
+            """INSERT INTO outcomes (job_id, reply_type, reply_date, notes, created_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (job_id, reply_type, reply_date, notes, ts),
         )
+        conn.execute(
+            "UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?",
+            (STATUS_MAP[reply_type], ts, job_id),
+        )
+    log_action(job_id, 'outcome', detail=reply_type)
+
+
+def get_outcomes(job_id: str) -> list[dict]:
+    """Return all outcomes for a job, ordered by created_at ASC.
+
+    Args:
+        job_id: The related job's primary key.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM outcomes WHERE job_id = ? ORDER BY created_at ASC",
+            (job_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_weekly_summary() -> dict | None:
+    """Return summary stats if >= 5 outcomes exist, else return None.
+
+    Keys:
+      total_outcomes      int   -- total rows in outcomes table
+      response_rate       float -- % of outcomes that are NOT no_reply
+      avg_score_responded float -- avg AI score of jobs with positive/interview/offer outcome
+      top_status          str   -- most common reply_type
+    """
+    with get_conn() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM outcomes").fetchone()[0]
+        if total < 5:
+            return None
+
+        responded = conn.execute(
+            "SELECT COUNT(*) FROM outcomes WHERE reply_type != 'no_reply'"
+        ).fetchone()[0]
+
+        avg_row = conn.execute(
+            """SELECT AVG(j.score) FROM outcomes o
+               JOIN jobs j ON j.id = o.job_id
+               WHERE o.reply_type IN ('positive', 'interview', 'offer')"""
+        ).fetchone()
+        avg_score = avg_row[0] if avg_row[0] is not None else 0.0
+
+        top_row = conn.execute(
+            """SELECT reply_type FROM outcomes
+               GROUP BY reply_type ORDER BY COUNT(*) DESC LIMIT 1"""
+        ).fetchone()
+        top_status = top_row[0] if top_row else 'n/a'
+
+    return {
+        'total_outcomes':      total,
+        'response_rate':       responded / total * 100,
+        'avg_score_responded': avg_score,
+        'top_status':          top_status,
+    }
 
 
 def get_activity_report(date_from: str, date_to: str) -> list[dict]:
