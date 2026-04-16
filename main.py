@@ -637,8 +637,108 @@ def cmd_reset(args: argparse.Namespace) -> None:
 
 
 def cmd_status(args: argparse.Namespace) -> None:
-    """Update the status of a job application."""
-    print("Coming in Phase 4: update job status")
+    """Record outcome (reply type) for a job after application."""
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from src.db import (
+        init_db, get_jobs, get_job,
+        record_outcome, get_outcomes, get_weekly_summary,
+    )
+
+    console = Console()
+    init_db()
+
+    # Step 1 — Load and filter eligible jobs
+    all_jobs = get_jobs()
+    jobs = [j for j in all_jobs if j['status'] in ('applied', 'responded', 'interview')]
+    if not jobs:
+        console.print("[yellow]No applied jobs to update.[/yellow]")
+        return
+
+    # Step 2 — Show selection table
+    table = Table(title=f"{len(jobs)} jobs eligible for outcome update")
+    table.add_column("#", style="dim", width=4)
+    table.add_column("Company", max_width=24)
+    table.add_column("Role", max_width=38)
+    table.add_column("Status", width=12)
+    table.add_column("Score", width=6, justify="center")
+    table.add_column("Applied", width=12)
+    for i, j in enumerate(jobs, 1):
+        score = j.get("score", 0) or 0
+        score_cell = f"[green]{score}[/green]" if score >= 7 else (f"[yellow]{score}[/yellow]" if score >= 5 else f"[red]{score}[/red]")
+        table.add_row(
+            str(i),
+            (j.get("company") or "")[:24],
+            (j.get("role_title") or "")[:38],
+            j.get("status") or "",
+            score_cell,
+            j.get("applied_at") or "-",
+        )
+    console.print(table)
+
+    raw = input("Enter job number (or 'q' to quit): ").strip().lower()
+    if raw == 'q':
+        return
+    if not raw.isdigit() or not (1 <= int(raw) <= len(jobs)):
+        raw = input("Invalid. Enter job number (or 'q'): ").strip().lower()
+        if raw == 'q' or not raw.isdigit() or not (1 <= int(raw) <= len(jobs)):
+            return
+    job = jobs[int(raw) - 1]
+    job_id = job['id']
+
+    # Step 3 — Show existing outcomes
+    existing = get_outcomes(job_id)
+    if existing:
+        console.print(f"\n[dim]Existing outcomes for {job['company']}:[/dim]")
+        for o in existing:
+            console.print(f"  {o['created_at'][:10]}  {o['reply_type']}  {o['notes'] or ''}")
+
+    # Step 4 — Prompt for outcome type
+    console.print("\nOutcome type:")
+    console.print("  1) no_reply    -- no response received")
+    console.print("  2) rejection   -- rejected by company")
+    console.print("  3) positive    -- positive reply or callback")
+    console.print("  4) interview   -- interview scheduled or completed")
+    console.print("  5) offer       -- job offer received")
+    OUTCOME_MAP = {'1': 'no_reply', '2': 'rejection', '3': 'positive', '4': 'interview', '5': 'offer'}
+    while True:
+        outcome_raw = input("Enter number (1-5): ").strip()
+        if outcome_raw in OUTCOME_MAP:
+            reply_type = OUTCOME_MAP[outcome_raw]
+            break
+        console.print("[yellow]Please enter a number between 1 and 5.[/yellow]")
+
+    # Step 5 — Reply date
+    date_raw = input("Reply date (YYYY-MM-DD, or Enter to skip): ").strip()
+    reply_date = date_raw if date_raw else None
+
+    # Step 6 — Notes
+    notes_raw = input("Notes (optional, Enter to skip): ").strip()
+    notes = notes_raw if notes_raw else None
+
+    # Step 7 — Confirm and save
+    console.print(f"\n  Job:     {job['company']} — {job['role_title']}")
+    console.print(f"  Outcome: {reply_type}")
+    console.print(f"  Date:    {reply_date or '—'}")
+    console.print(f"  Notes:   {notes or '—'}")
+    confirm = input("Save? [Y/n]: ").strip().lower()
+    if confirm in ('', 'y'):
+        record_outcome(job_id, reply_type, reply_date, notes)
+        console.print("[green]Outcome recorded.[/green]")
+    else:
+        console.print("Cancelled.")
+        return
+
+    # Step 8 — Weekly summary
+    summary = get_weekly_summary()
+    if summary is not None:
+        panel_text = (
+            f"Response rate:                {summary['response_rate']:.0f}%\n"
+            f"Avg score (positive replies): {summary['avg_score_responded']:.1f}\n"
+            f"Most common outcome:          {summary['top_status']}"
+        )
+        console.print(Panel(panel_text, title=f"Activity summary ({summary['total_outcomes']} outcomes tracked)"))
 
 
 def cmd_report(args: argparse.Namespace) -> None:
