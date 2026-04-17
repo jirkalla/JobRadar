@@ -7,6 +7,7 @@ data/tracker.db
 data/processed/
 inbox/
 output/
+output/.tmp/
 
 # Personal documents (never commit)
 examples/letters/
