@@ -60,8 +60,8 @@ P5 does NOT:
 - [x] Task P5.2 — Job list: GET /jobs — filterable table
 - [x] Task P5.3 — Job detail: GET /jobs/{id} — full JD, score, documents
 - [x] Task P5.4 — Status update: POST /jobs/{id}/status — outcome entry form
-- [ ] Task P5.5a — Generate (research): read generator.py, pdf_writer.py, report findings
-- [ ] Task P5.5b — Generate (implement): four-POST temp-file flow
+- [x] Task P5.5a — Generate (research): read generator.py, pdf_writer.py, report findings
+- [x] Task P5.5b — Generate (implement): four-POST temp-file flow
 - [ ] Task P5.6 — Rate document: POST /documents/{id}/rate — letter rating
 - [ ] Task P5.7 — History: GET /history — full activity log with filters
 - [ ] Task P5.8 — Report: GET /report + POST /report/export — date range + download
