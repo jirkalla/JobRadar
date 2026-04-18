@@ -29,6 +29,16 @@ Items deferred from P5 implementation. Prioritize after P5.10 is merged.
 
 ---
 
+## UX — Job Detail (/jobs/{id})
+
+### Edit applied_at from the UI
+- Currently only editable via CLI (`set_applied_at()` in db.py)
+- Add a small inline form or modal on the job detail page to update `applied_at`
+- Route: POST /jobs/{id}/applied_at with a date input field
+- Redirect back to GET /jobs/{id}?msg=Date+updated
+
+---
+
 ## UX — General
 
 ### Pagination

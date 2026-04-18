@@ -1,17 +1,24 @@
 """FastAPI application for JobRadar Web UI — routing only, no business logic."""
 
+import json
 import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.responses import Response
 
-from fastapi import FastAPI, Query, Request
-
-from src.db import get_activity_log, get_jobs, get_weekly_summary
+from src.db import (
+    get_activity_log,
+    get_documents,
+    get_job,
+    get_jobs,
+    get_outcomes,
+    get_weekly_summary,
+)
 
 BASE_DIR = Path(__file__).parent
 TMP_DIR  = Path("output/.tmp")
@@ -66,4 +73,28 @@ async def job_list(
         "jobs":      jobs,
         "status":    status or "",
         "min_score": min_score,
+    })
+
+
+@app.get("/jobs/{job_id}", response_class=HTMLResponse)
+async def job_detail(request: Request, job_id: str) -> Response:
+    """Render the job detail page."""
+    job = get_job(job_id)
+    if job is None:
+        return templates.TemplateResponse(
+            request, "404.html", {"job_id": job_id}, status_code=404
+        )
+    # Parse JSON fields stored as strings in the DB
+    job["strong_matches"] = json.loads(job.get("strong_matches") or "[]")
+    job["concerns"]       = json.loads(job.get("concerns") or "[]")
+    job["tech_stack"]     = json.loads(job.get("tech_stack") or "[]")
+
+    documents = get_documents(job_id)
+    outcomes  = get_outcomes(job_id)
+    activity  = get_activity_log(job_id=job_id)
+    return templates.TemplateResponse(request, "job_detail.html", {
+        "job":       job,
+        "documents": documents,
+        "outcomes":  outcomes,
+        "activity":  activity,
     })
