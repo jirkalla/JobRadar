@@ -56,7 +56,7 @@ P5 does NOT:
 ## Progress
 
 - [x] Task P5.0 — Bootstrap: deps, db.py additions, scaffold ui/, startup cleanup
-- [ ] Task P5.1 — Dashboard: GET / — stats panel + recent activity
+- [x] Task P5.1 — Dashboard: GET / — stats panel + recent activity
 - [ ] Task P5.2 — Job list: GET /jobs — filterable table
 - [ ] Task P5.3 — Job detail: GET /jobs/{id} — full JD, score, documents
 - [ ] Task P5.4 — Status update: POST /jobs/{id}/status — outcome entry form
@@ -372,7 +372,7 @@ Commit after confirmation: feat(p5): scaffold FastAPI app, Bootstrap 5.3.8, base
 
 ## Task P5.1 — Dashboard: GET /
 
-**Status:** [ ]
+**Status:** [x]
 **Files modified:**
   ui/main_ui.py
   ui/templates/index.html
@@ -714,6 +714,11 @@ POST /jobs/{id}/generate/confirm  — move to permanent, save records
   3. Save document records to DB (functions confirmed in P5.5a)
   4. Call update_job_status(id, 'applied')
      Check whether update_job_status logs internally (same rule as P5.4)
+  4b. log_action(id, 'generated', detail=str(permanent_path))
+      NOTE: Pass the permanent output path as detail (NOT the temp path).
+      Discarded generations must NOT log — only call after files are moved.
+      One 'generated' row in activity_log = one saved output.
+      Revisions that are discarded leave no trace, keeping the log clean.
   5. Delete output/.tmp/{job_id}/
   6. Redirect to GET /jobs/{id}?msg=Documents+saved
 
