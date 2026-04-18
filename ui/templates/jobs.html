@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Jobs — JobRadar{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-4"><i class="bi bi-briefcase"></i> Jobs</h1>
+
+{# Filter bar #}
+<form method="get" action="/jobs" class="row g-2 align-items-end mb-4">
+  <div class="col-sm-4 col-md-3">
+    <label for="status" class="form-label small fw-semibold">Status</label>
+    <select id="status" name="status" class="form-select form-select-sm">
+      <option value="" {% if not status %}selected{% endif %}>All</option>
+      {% for s in ['new','reviewed','approved','applied','responded','interview','closed','rejected'] %}
+      <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-3 col-md-2">
+    <label for="min_score" class="form-label small fw-semibold">Min Score</label>
+    <input id="min_score" name="min_score" type="number" min="0" max="10"
+           value="{{ min_score }}" class="form-control form-control-sm">
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+    <a href="/jobs" class="btn btn-outline-secondary btn-sm ms-1">Reset</a>
+  </div>
+  <div class="col-auto ms-auto align-self-end">
+    <span class="text-muted small">{{ jobs|length }} job{{ 's' if jobs|length != 1 }}</span>
+  </div>
+</form>
+
+{# Job table #}
+{% if jobs %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th style="width:4rem">Score</th>
+        <th>Company</th>
+        <th>Role Title</th>
+        <th>Location</th>
+        <th>Status</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      {% set score = job.score if job.score is not none else 0 %}
+      {% if score >= 7 %}
+        {% set score_class = "badge text-bg-success" %}
+      {% elif score >= 5 %}
+        {% set score_class = "badge text-bg-warning" %}
+      {% else %}
+        {% set score_class = "badge text-bg-danger" %}
+      {% endif %}
+      {% if job.status == 'approved' %}
+        {% set status_class = "badge text-bg-success" %}
+      {% elif job.status == 'applied' %}
+        {% set status_class = "badge text-bg-primary" %}
+      {% elif job.status == 'interview' %}
+        {% set status_class = "badge text-bg-warning text-dark" %}
+      {% elif job.status == 'responded' %}
+        {% set status_class = "badge text-bg-info text-dark" %}
+      {% elif job.status == 'reviewed' %}
+        {% set status_class = "badge text-bg-secondary" %}
+      {% elif job.status == 'rejected' %}
+        {% set status_class = "badge text-bg-danger" %}
+      {% elif job.status == 'closed' %}
+        {% set status_class = "badge text-bg-dark" %}
+      {% else %}
+        {% set status_class = "badge text-bg-light text-dark border" %}
+      {% endif %}
+      {% set date_display = (job.applied_at or '')[:10] if job.applied_at else (job.created_at or '')[:10] %}
+      {% set date_title = 'Applied' if job.applied_at else 'Imported' %}
+      <tr style="cursor:pointer" onclick="location.href='/jobs/{{ job.id }}'">
+        <td>
+          {% if job.score is not none %}
+          <span class="{{ score_class }}">{{ job.score }}</span>
+          {% else %}
+          <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+        <td class="fw-semibold">{{ job.company or '—' }}</td>
+        <td>{{ job.role_title or '—' }}</td>
+        <td class="text-muted small">{{ job.location or '—' }}</td>
+        <td><span class="{{ status_class }}">{{ job.status }}</span></td>
+        <td class="text-muted small text-nowrap" title="{{ date_title }}">
+          {{ date_display }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-secondary">No jobs match the current filters.</div>
+{% endif %}
+{% endblock %}

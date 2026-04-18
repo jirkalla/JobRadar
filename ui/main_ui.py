@@ -9,6 +9,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from fastapi import FastAPI, Query, Request
+
 from src.db import get_activity_log, get_jobs, get_weekly_summary
 
 BASE_DIR = Path(__file__).parent
@@ -49,4 +51,19 @@ async def dashboard(request: Request) -> HTMLResponse:
         "stats":    stats,
         "activity": activity,
         "summary":  summary,
+    })
+
+
+@app.get("/jobs", response_class=HTMLResponse)
+async def job_list(
+    request: Request,
+    status: str | None = Query(default=None),
+    min_score: int = Query(default=0),
+) -> HTMLResponse:
+    """Render the job list page with optional filtering."""
+    jobs = get_jobs(status=status or None, min_score=min_score)
+    return templates.TemplateResponse(request, "jobs.html", {
+        "jobs":      jobs,
+        "status":    status or "",
+        "min_score": min_score,
     })
