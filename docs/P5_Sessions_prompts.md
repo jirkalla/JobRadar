@@ -79,9 +79,9 @@ Critical rules:
 Step F: Verify
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
-   Expected: starts on port 8000, lifespan handler runs without error.
-   Open http://localhost:8000 in your browser yourself.
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
+   Expected: starts on port 8471, lifespan handler runs without error.
+   Open http://localhost:8471 in your browser yourself.
    Confirm: page loads with Bootstrap navbar and styled content.
    Paste a brief description of what you see in the browser.
    Stop server.
@@ -126,8 +126,8 @@ Template: 4 stat cards (Total / Approved / Applied / Closed) + activity table (1
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
-   Open http://localhost:8000 in your browser yourself.
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
+   Open http://localhost:8471 in your browser yourself.
    Confirm: stat cards show real numbers, activity table populated, no exception.
    Paste a brief description of what you see.
    Stop server.
@@ -168,7 +168,7 @@ job table (Score colour-coded | Company | Role | Location | Status | Date | [Vie
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
    Open /jobs in your browser yourself.
    Confirm: table with jobs, colour-coded scores, filter bar present.
    Apply a status filter — confirm only matching rows shown.
@@ -219,7 +219,7 @@ Action buttons conditional on status:
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
    Open /jobs/{a real job id} in your browser yourself.
    Confirm: all five sections render, lists display correctly (not raw JSON).
    Open /jobs/nonexistent — confirm clean 404.
@@ -269,7 +269,7 @@ Case B (outcome entry):
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
 
    Test A: Open a reviewed job in browser. Click [Approve].
    Confirm redirect, status shows 'approved'.
@@ -431,7 +431,7 @@ Verification:
    python -m py_compile src/db.py
    Expected: silence for both.
 
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
 
    Test generate + save:
    Open an approved job in browser. Click [Generate].
@@ -499,7 +499,7 @@ get_document(), redirect to /jobs/{job_id}.
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
    Open a job detail with at least one document in browser.
    Submit rating 4. Confirm redirect back to job detail.
    Stop server.
@@ -550,7 +550,7 @@ source='manual' rows: italic or badge. "Showing N rows" count above table.
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
    Open /history in browser yourself.
    Confirm rows render, filter bar present.
    Apply action filter — confirm only matching rows shown.
@@ -607,7 +607,7 @@ POST /report/export:
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
    Open /report in browser yourself. Confirm form and preview render.
    Set a date range with known activity.
    Select PDF → confirm browser downloads a file. Open it — confirm it has data.
@@ -659,7 +659,7 @@ After save: redirect to GET /profile?msg=Profile+saved.
 Verification:
 1. python -m py_compile ui/main_ui.py
    Expected: silence.
-2. python -m uvicorn ui.main_ui:app --reload
+2. python -m uvicorn ui.main_ui:app --reload --port 8471
    Open /profile in browser yourself. Confirm all listed fields show current values.
    Change min_score_to_show. Click Save. Confirm success message appears.
    Stop server.
@@ -714,7 +714,7 @@ HTTP status checks (run with server running in a separate terminal):
 python -c "
 import urllib.request
 for path in ['/', '/jobs', '/history', '/report', '/profile']:
-    r = urllib.request.urlopen(f'http://localhost:8000{path}')
+    r = urllib.request.urlopen(f'http://localhost:8471{path}')
     print(f'GET {path}: {r.status}')
 "
 ```

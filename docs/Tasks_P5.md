@@ -75,7 +75,7 @@ P5 does NOT:
 ### Agent verifies (run these, show output)
 - [ ] python -m py_compile ui/main_ui.py — no errors
 - [ ] python -m py_compile src/db.py — no errors
-- [ ] uvicorn ui.main_ui:app --reload starts without error on port 8000
+- [ ] uvicorn ui.main_ui:app --reload --port 8471 starts without error on port 8471
 - [ ] GET / returns 200
 - [ ] GET /jobs returns 200
 - [ ] GET /jobs/{real_job_id} returns 200
@@ -98,7 +98,7 @@ P5 does NOT:
 - [ ] History: manual source rows visually distinct from system rows
 - [ ] Report: PDF and CSV download, files open without error
 - [ ] Profile: all listed fields editable, success message shown after save
-- [ ] Works on Chrome/Edge on Windows (local, port 8000)
+- [ ] Works on Chrome/Edge on Windows (local, port 8471)
 
 ---
 
@@ -352,9 +352,9 @@ Expected: silence.
 ```
 python -m uvicorn ui.main_ui:app --reload
 ```
-Expected: starts on port 8000 with no import errors.
+Expected: starts on port 8471 with no import errors.
 Confirm in startup log that the lifespan handler ran (no error on startup).
-Open http://localhost:8000 in your browser. Confirm page loads with Bootstrap navbar.
+Open http://localhost:8471 in your browser. Confirm page loads with Bootstrap navbar.
 Paste a brief description of what you see. Stop server.
 
 Acceptance Criteria:
@@ -411,7 +411,7 @@ python -m py_compile ui/main_ui.py
 ```
 Expected: silence.
 
-Start server. Open http://localhost:8000 in your browser.
+Start server. Open http://localhost:8471 in your browser.
 Confirm: stat cards show real counts, activity table populated, no exception.
 Paste a brief description of what you see. Stop server.
 
@@ -1101,7 +1101,7 @@ HTTP status checks (run with server running in a second terminal):
 python -c "
 import urllib.request
 for path in ['/', '/jobs', '/history', '/report', '/profile']:
-    r = urllib.request.urlopen(f'http://localhost:8000{path}')
+    r = urllib.request.urlopen(f'http://localhost:8471{path}')
     print(f'GET {path}: {r.status}')
 "
 ```
