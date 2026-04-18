@@ -58,7 +58,7 @@ P5 does NOT:
 - [x] Task P5.0 — Bootstrap: deps, db.py additions, scaffold ui/, startup cleanup
 - [x] Task P5.1 — Dashboard: GET / — stats panel + recent activity
 - [x] Task P5.2 — Job list: GET /jobs — filterable table
-- [ ] Task P5.3 — Job detail: GET /jobs/{id} — full JD, score, documents
+- [x] Task P5.3 — Job detail: GET /jobs/{id} — full JD, score, documents
 - [ ] Task P5.4 — Status update: POST /jobs/{id}/status — outcome entry form
 - [ ] Task P5.5a — Generate (research): read generator.py, pdf_writer.py, report findings
 - [ ] Task P5.5b — Generate (implement): four-POST temp-file flow
@@ -478,7 +478,7 @@ Commit after confirmation: feat(p5): implement job list page with filters
 
 ## Task P5.3 — Job detail: GET /jobs/{id}
 
-**Status:** [ ]
+**Status:** [x] Complete
 **Files modified:**
   ui/main_ui.py
   ui/templates/job_detail.html
