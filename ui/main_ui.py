@@ -5,8 +5,8 @@ import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Form, Query, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.responses import Response
@@ -18,6 +18,8 @@ from src.db import (
     get_jobs,
     get_outcomes,
     get_weekly_summary,
+    record_outcome,
+    update_job_status,
 )
 
 BASE_DIR = Path(__file__).parent
@@ -98,3 +100,64 @@ async def job_detail(request: Request, job_id: str) -> Response:
         "outcomes":  outcomes,
         "activity":  activity,
     })
+
+
+_VALID_REPLY_TYPES = {'no_reply', 'rejection', 'positive', 'interview', 'offer'}
+
+
+@app.get("/jobs/{job_id}/status", response_class=HTMLResponse)
+async def status_form(request: Request, job_id: str) -> Response:
+    """Render the outcome entry form."""
+    job = get_job(job_id)
+    if job is None:
+        return templates.TemplateResponse(
+            request, "404.html", {"job_id": job_id}, status_code=404
+        )
+    return templates.TemplateResponse(request, "status_form.html", {"job": job})
+
+
+@app.post("/jobs/{job_id}/status")
+async def status_update(
+    request: Request,
+    job_id: str,
+    action: str = Form(...),
+    reply_type: str | None = Form(default=None),
+    reply_date: str | None = Form(default=None),
+    notes: str | None = Form(default=None),
+) -> Response:
+    """Handle approve/reject (Case A) and outcome entry (Case B)."""
+    job = get_job(job_id)
+    if job is None:
+        return templates.TemplateResponse(
+            request, "404.html", {"job_id": job_id}, status_code=404
+        )
+
+    if action == "approve":
+        # update_job_status() writes to activity_log internally — no second call
+        update_job_status(job_id, "approved")
+        return RedirectResponse(f"/jobs/{job_id}", status_code=303)
+
+    if action == "reject":
+        update_job_status(job_id, "rejected")
+        return RedirectResponse(f"/jobs/{job_id}", status_code=303)
+
+    if action == "outcome":
+        if not reply_type or reply_type not in _VALID_REPLY_TYPES:
+            return templates.TemplateResponse(
+                request,
+                "status_form.html",
+                {"job": job, "error": f"Invalid reply type: {reply_type!r}"},
+                status_code=400,
+            )
+        record_outcome(
+            job_id,
+            reply_type,
+            reply_date or None,
+            notes or None,
+        )
+        return RedirectResponse(
+            f"/jobs/{job_id}?msg=Outcome+recorded", status_code=303
+        )
+
+    # Unknown action
+    return RedirectResponse(f"/jobs/{job_id}", status_code=303)
