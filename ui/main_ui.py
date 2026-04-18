@@ -9,6 +9,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from src.db import get_activity_log, get_jobs, get_weekly_summary
+
 BASE_DIR = Path(__file__).parent
 TMP_DIR  = Path("output/.tmp")
 
@@ -30,4 +32,21 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request) -> HTMLResponse:
     """Render the dashboard page."""
-    return templates.TemplateResponse(request, "index.html")
+    jobs = get_jobs()
+    by_status: dict[str, int] = {}
+    for j in jobs:
+        s = j.get("status", "")
+        by_status[s] = by_status.get(s, 0) + 1
+    stats = {
+        "total":    len(jobs),
+        "approved": by_status.get("approved", 0),
+        "applied":  by_status.get("applied", 0),
+        "closed":   by_status.get("closed", 0),
+    }
+    activity = get_activity_log(limit=10)
+    summary  = get_weekly_summary()
+    return templates.TemplateResponse(request, "index.html", {
+        "stats":    stats,
+        "activity": activity,
+        "summary":  summary,
+    })
