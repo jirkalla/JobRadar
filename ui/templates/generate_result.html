@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Generate Preview — {{ job.company }} | JobRadar{% endblock %}
+
+{% block content %}
+
+{# ── Loading overlay (shown while Revise is processing) ──────────── #}
+<div id="loading-overlay"
+     class="d-none position-fixed top-0 start-0 w-100 h-100 flex-column align-items-center justify-content-center"
+     style="background:rgba(255,255,255,0.88);z-index:9999;">
+  <div class="spinner-border text-primary mb-3" style="width:3.5rem;height:3.5rem;" role="status">
+    <span class="visually-hidden">Generating…</span>
+  </div>
+  <p class="fw-semibold fs-5 text-primary mb-1">Generating documents…</p>
+  <p class="text-muted small">Calling AI — this usually takes 15–30 seconds</p>
+</div>
+
+{# ── Breadcrumb ───────────────────────────────────────────────────── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/jobs">Jobs</a></li>
+    <li class="breadcrumb-item"><a href="/jobs/{{ job.id }}">{{ job.company }}</a></li>
+    <li class="breadcrumb-item active">Generate Preview</li>
+  </ol>
+</nav>
+
+{# ── Sticky action bar ────────────────────────────────────────────── #}
+<div class="sticky-top bg-white border-bottom shadow-sm py-2 mb-4" style="z-index:100;">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div>
+      <span class="fw-semibold">{{ job.company }}</span>
+      <span class="text-muted ms-2 small">{{ job.role_title }}</span>
+      <span class="badge bg-warning text-dark ms-2">Preview</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button type="button" class="btn btn-outline-secondary btn-sm"
+              data-bs-toggle="collapse" data-bs-target="#revise-panel"
+              aria-expanded="false" aria-controls="revise-panel">
+        <i class="bi bi-arrow-clockwise"></i> Revise
+      </button>
+      <form method="post" action="/jobs/{{ job.id }}/generate/discard" id="discard-form"
+            onsubmit="return confirm('Discard these generated files? This cannot be undone.')">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-trash"></i> Discard
+        </button>
+      </form>
+      <form method="post" action="/jobs/{{ job.id }}/generate/confirm" id="save-form">
+        <input type="hidden" name="applied_date" id="applied-date-input" value="{{ today }}">
+        <div class="d-flex align-items-center gap-2">
+          <label for="applied-date-picker" class="text-muted small mb-0 text-nowrap">Applied on:</label>
+          <input type="date" id="applied-date-picker" class="form-control form-control-sm" style="width:150px"
+                 value="{{ today }}"
+                 oninput="document.getElementById('applied-date-input').value=this.value">
+          <button type="submit" class="btn btn-success btn-sm px-3 text-nowrap">
+            <i class="bi bi-floppy"></i> Save Documents
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# Collapsible revise panel #}
+  <div class="collapse mt-2" id="revise-panel">
+    <form method="post" action="/jobs/{{ job.id }}/generate/revise" id="revise-form">
+      <div class="input-group">
+        <textarea name="notes" class="form-control form-control-sm" rows="2"
+                  placeholder="Describe what to change — e.g. make the tone more formal, highlight Python more…"></textarea>
+        <button type="submit" class="btn btn-secondary">
+          <i class="bi bi-arrow-clockwise"></i> Regenerate
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Cover letter ─────────────────────────────────────────────────── #}
+<div class="card mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-envelope-paper"></i> Cover Letter
+  </div>
+  <div class="card-body">
+    <div style="
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 0.95rem;
+      line-height: 1.75;
+      max-height: 480px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+    ">{{ cl_text }}</div>
+  </div>
+</div>
+
+{# ── CV changes (conditional) ─────────────────────────────────────── #}
+{% if cv_changes %}
+<div class="card mb-4">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-file-person"></i> CV Changes
+    {% if cv_md_name %}<span class="text-muted fw-normal ms-2 small">{{ cv_md_name }}</span>{% endif %}
+  </div>
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Profile summary</dt>
+      <dd class="col-sm-9">{{ cv_changes.profile_summary }}</dd>
+
+      <dt class="col-sm-3">Skills to highlight</dt>
+      <dd class="col-sm-9">
+        {% for s in cv_changes.skills_to_highlight %}
+          <span class="badge bg-success me-1">{{ s }}</span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endfor %}
+      </dd>
+
+      <dt class="col-sm-3">Skills to remove</dt>
+      <dd class="col-sm-9">
+        {% for s in cv_changes.skills_to_remove %}
+          <span class="badge bg-secondary me-1">{{ s }}</span>
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endfor %}
+      </dd>
+
+      <dt class="col-sm-3">Why</dt>
+      <dd class="col-sm-9 text-muted">{{ cv_changes.changes_explained }}</dd>
+    </dl>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-secondary mb-4">
+  <i class="bi bi-info-circle"></i> CV tailoring was skipped (cv_base.md not found or AI returned an invalid response).
+</div>
+{% endif %}
+
+{# ── Bottom action bar (repeat for long pages) ───────────────────── #}
+<div class="d-flex justify-content-end gap-2 mt-2 pb-4 border-top pt-3">
+  <button type="button" class="btn btn-outline-secondary btn-sm"
+          data-bs-toggle="collapse" data-bs-target="#revise-panel"
+          aria-expanded="false" aria-controls="revise-panel">
+    <i class="bi bi-arrow-clockwise"></i> Revise
+  </button>
+  <button type="submit" form="discard-form" class="btn btn-outline-danger btn-sm">
+    <i class="bi bi-trash"></i> Discard
+  </button>
+  <button type="submit" form="save-form" class="btn btn-success btn-sm px-3">
+    <i class="bi bi-floppy"></i> Save Documents
+  </button></div>
+
+{# ── JS ───────────────────────────────────────────────────────────── #}
+<script>
+  document.getElementById('revise-form').addEventListener('submit', function () {
+    var ov = document.getElementById('loading-overlay');
+    ov.classList.remove('d-none');
+    ov.classList.add('d-flex');
+  });
+</script>
+
+{% endblock %}

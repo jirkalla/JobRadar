@@ -1,5 +1,6 @@
 # Secrets and personal data
 .env
+.secrets.ps1
 config/profile.yaml
 
 # Database and generated output

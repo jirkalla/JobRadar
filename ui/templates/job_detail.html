@@ -4,6 +4,17 @@
 
 {% block content %}
 
+{# ── Loading overlay (shown while Generate is processing) ─────────── #}
+<div id="loading-overlay"
+     class="d-none position-fixed top-0 start-0 w-100 h-100 flex-column align-items-center justify-content-center"
+     style="background:rgba(255,255,255,0.88);z-index:9999;">
+  <div class="spinner-border text-primary mb-3" style="width:3.5rem;height:3.5rem;" role="status">
+    <span class="visually-hidden">Generating…</span>
+  </div>
+  <p class="fw-semibold fs-5 text-primary mb-1">Generating documents…</p>
+  <p class="text-muted small">Calling AI — this usually takes 15–30 seconds</p>
+</div>
+
 {# ── Score / status badge helpers ── #}
 {% set score = job.score if job.score is not none else 0 %}
 {% if score >= 7 %}
@@ -316,5 +327,26 @@
   </div>
 
 </div>
+
+{% if job.status == 'approved' %}
+<script>
+  document.querySelector('form[action="/jobs/{{ job.id }}/generate"]')
+    .addEventListener('submit', function () {
+      var ov = document.getElementById('loading-overlay');
+      ov.classList.remove('d-none');
+      ov.classList.add('d-flex');
+    });
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var hash = window.location.hash.replace('#', '');
+    if (hash) {
+      var btn = document.querySelector('[data-bs-target="#pane-' + hash + '"]');
+      if (btn) { bootstrap.Tab.getOrCreateInstance(btn).show(); }
+    }
+  })();
+</script>
 
 {% endblock %}
