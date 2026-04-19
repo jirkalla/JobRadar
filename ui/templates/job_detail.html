@@ -247,12 +247,15 @@
             <td class="small">{{ doc.version or '—' }}</td>
             <td>
               {% if doc.rating %}
-              <span class="text-warning">
+              <span class="text-warning me-1">
                 {% for i in range(doc.rating) %}★{% endfor %}{% for i in range(5 - doc.rating) %}☆{% endfor %}
               </span>
-              {% else %}
-              <span class="text-muted small">Not rated</span>
               {% endif %}
+              <form method="post" action="/documents/{{ doc.id }}/rate" class="d-inline-flex align-items-center gap-1">
+                <input type="number" name="rating" min="1" max="5" value="{{ doc.rating or '' }}"
+                       class="form-control form-control-sm" style="width:4.5rem;" required>
+                <button type="submit" class="btn btn-sm btn-outline-primary">Rate</button>
+              </form>
             </td>
           </tr>
           {% endfor %}

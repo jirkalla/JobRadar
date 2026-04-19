@@ -19,12 +19,14 @@ from src import generator
 from src.ai_client import get_client
 from src.db import (
     get_activity_log,
+    get_document,
     get_documents,
     get_job,
     get_jobs,
     get_outcomes,
     get_weekly_summary,
     log_action,
+    rate_document,
     record_outcome,
     save_document,
     update_job_status,
@@ -424,3 +426,23 @@ async def generate_revise(
         "cv_md_name": result["cv_md_path"].name if result["cv_md_path"] else None,
         "today":      datetime.now(timezone.utc).strftime("%Y-%m-%d"),
     })
+
+
+# ---------------------------------------------------------------------------
+# Document rating
+# ---------------------------------------------------------------------------
+
+@app.post("/documents/{doc_id}/rate")
+async def document_rate(
+    request: Request,
+    doc_id: int,
+    rating: int = Form(...),
+) -> Response:
+    """Rate a document 1–5. rating >= 4 marks it as a style example."""
+    if rating < 1 or rating > 5:
+        return HTMLResponse("Invalid rating: must be between 1 and 5.", status_code=400)
+    doc = get_document(doc_id)
+    if doc is None:
+        return HTMLResponse("Document not found.", status_code=404)
+    rate_document(doc_id, rating)
+    return RedirectResponse(f"/jobs/{doc['job_id']}", status_code=303)
