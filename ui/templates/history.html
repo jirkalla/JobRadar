@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}History — JobRadar{% endblock %}
+
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-clock-history"></i> Activity History</h4>
+
+{# ── Filter bar ── #}
+<form method="get" action="/history" class="row g-2 align-items-end mb-3">
+  <div class="col-auto">
+    <label for="f-job-id" class="form-label small mb-1">Job ID</label>
+    <input id="f-job-id" type="text" name="job_id" value="{{ job_id }}"
+           class="form-control form-control-sm" placeholder="job-id…" style="width:20rem;">
+  </div>
+  <div class="col-auto">
+    <label for="f-action" class="form-label small mb-1">Action</label>
+    <select id="f-action" name="action" class="form-select form-select-sm">
+      <option value="" {% if not action %}selected{% endif %}>— all —</option>
+      {% for a in ['applied','approved','generated','outcome','recruiter_contact','rejected','scored'] %}
+      <option value="{{ a }}" {% if action == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label for="f-limit" class="form-label small mb-1">Limit</label>
+    <select id="f-limit" name="limit" class="form-select form-select-sm">
+      {% for n in [25, 50, 100, 200] %}
+      <option value="{{ n }}" {% if limit == n %}selected{% endif %}>{{ n }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+    <a href="/history" class="btn btn-outline-secondary btn-sm ms-1">Clear</a>
+  </div>
+</form>
+
+{# ── Row count ── #}
+<p class="text-muted small mb-2">Showing {{ rows|length }} row{{ 's' if rows|length != 1 else '' }}</p>
+
+{# ── Table ── #}
+{% if rows %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Timestamp</th>
+        <th>Job ID</th>
+        <th>Action</th>
+        <th>Detail</th>
+        <th>Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr {% if row.source == 'manual' %}class="fst-italic"{% endif %}>
+        <td class="text-muted small font-monospace">{{ row.ts[:19] | replace('T', ' ') }}</td>
+        <td>
+          {% if row.job_id %}
+          <a href="/jobs/{{ row.job_id }}">{{ row.job_id }}</a>
+          {% else %}
+          <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge
+            {% if row.action == 'approved' %}text-bg-success
+            {% elif row.action == 'rejected' %}text-bg-danger
+            {% elif row.action == 'applied' %}text-bg-primary
+            {% elif row.action == 'generated' %}text-bg-info
+            {% elif row.action == 'scored' %}text-bg-secondary
+            {% else %}text-bg-light text-dark border
+            {% endif %}">{{ row.action }}</span>
+        </td>
+        <td class="text-muted">{{ row.detail or '—' }}</td>
+        <td>
+          {% if row.source == 'manual' %}
+          <span class="badge text-bg-warning text-dark">manual</span>
+          {% else %}
+          <span class="text-muted small">{{ row.source or '—' }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted mt-3">No activity log entries match the current filters.</p>
+{% endif %}
+{% endblock %}

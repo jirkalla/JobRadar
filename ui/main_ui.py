@@ -446,3 +446,29 @@ async def document_rate(
         return HTMLResponse("Document not found.", status_code=404)
     rate_document(doc_id, rating)
     return RedirectResponse(f"/jobs/{doc['job_id']}", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# History
+# ---------------------------------------------------------------------------
+
+@app.get("/history", response_class=HTMLResponse)
+async def history(
+    request: Request,
+    job_id: str = Query(default=""),
+    action: str = Query(default=""),
+    limit: int = Query(default=50),
+) -> HTMLResponse:
+    """Display the full activity log with optional filters."""
+    limit = max(1, min(limit, 200))
+    rows = get_activity_log(
+        job_id=job_id or None,
+        action=action or None,
+        limit=limit,
+    )
+    return templates.TemplateResponse(request, "history.html", {
+        "rows":      rows,
+        "job_id":    job_id,
+        "action":    action,
+        "limit":     limit,
+    })
