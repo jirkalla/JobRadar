@@ -377,9 +377,8 @@ def get_activity_report(date_from: str, date_to: str) -> list[dict]:
                 j.status, j.score,
                 a.action, a.detail, a.source
             FROM jobs j
-            LEFT JOIN activity_log a ON a.job_id = j.id
-              AND a.action = (
-                  SELECT action FROM activity_log
+            LEFT JOIN activity_log a ON a.id = (
+                  SELECT id FROM activity_log
                   WHERE job_id = j.id
                   ORDER BY ts DESC LIMIT 1
               )

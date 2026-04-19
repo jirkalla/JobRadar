@@ -64,7 +64,7 @@ P5 does NOT:
 - [x] Task P5.5b — Generate (implement): four-POST temp-file flow
 - [x] Task P5.6 — Rate document: POST /documents/{id}/rate — letter rating
 - [x] Task P5.7 — History: GET /history — full activity log with filters
-- [ ] Task P5.8 — Report: GET /report + POST /report/export — date range + download
+- [x] Task P5.8 — Report: GET /report + POST /report/export — date range + download
 - [ ] Task P5.9 — Profile: GET /profile + POST /profile — view and edit profile.yaml
 - [ ] Task P5.10 — Completion check + merge to main
 

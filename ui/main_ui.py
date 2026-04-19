@@ -4,13 +4,13 @@ import asyncio
 import json
 import shutil
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
 
 from fastapi import FastAPI, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.responses import Response
@@ -19,6 +19,7 @@ from src import generator
 from src.ai_client import get_client
 from src.db import (
     get_activity_log,
+    get_activity_report,
     get_document,
     get_documents,
     get_job,
@@ -31,6 +32,7 @@ from src.db import (
     save_document,
     update_job_status,
 )
+from src.report import generate_report
 from src.generator import _slugify
 from src.pdf_writer import cover_letter_md_to_pdf, cv_md_to_pdf
 
@@ -446,6 +448,69 @@ async def document_rate(
         return HTMLResponse("Document not found.", status_code=404)
     rate_document(doc_id, rating)
     return RedirectResponse(f"/jobs/{doc['job_id']}", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Report
+# ---------------------------------------------------------------------------
+
+@app.get("/report", response_class=HTMLResponse)
+async def report_get(
+    request: Request,
+    date_from: str = Query(default=""),
+    date_to:   str = Query(default=""),
+) -> HTMLResponse:
+    """Show the report form with an optional date range and a preview table."""
+    # Defaults: last 30 days
+    default_from = (date.today() - timedelta(days=30)).strftime("%Y-%m-%d")
+    default_to   = date.today().strftime("%Y-%m-%d")
+    date_from_form = date_from or default_from
+    date_to_form   = date_to   or default_to
+    # DB call expects YYYYMMDD
+    date_from_fmt = date_from_form.replace("-", "")
+    date_to_fmt   = date_to_form.replace("-", "")
+    preview_rows  = get_activity_report(date_from_fmt, date_to_fmt)
+    return templates.TemplateResponse(request, "report.html", {
+        "preview_rows":   preview_rows,
+        "date_from_form": date_from_form,
+        "date_to_form":   date_to_form,
+        "msg":            None,
+    })
+
+
+@app.post("/report/export")
+async def report_export(
+    request: Request,
+    date_from: str = Form(...),
+    date_to:   str = Form(...),
+    format:    str = Form(...),
+) -> Response:
+    """Export PDF or CSV for the chosen date range."""
+    # Browser submits YYYY-MM-DD; generate_report() expects YYYYMMDD
+    date_from_fmt = date_from.replace("-", "")
+    date_to_fmt   = date_to.replace("-", "")
+
+    pdf_path, csv_path, count = generate_report(date_from_fmt, date_to_fmt)
+
+    if count == 0:
+        # Re-render form with message
+        preview_rows = get_activity_report(date_from_fmt, date_to_fmt)
+        return templates.TemplateResponse(
+            request, "report.html",
+            {
+                "preview_rows":   preview_rows,
+                "date_from_form": date_from,
+                "date_to_form":   date_to,
+                "msg":            "No activity found in this date range.",
+            },
+            status_code=200,
+        )
+
+    if format == "pdf":
+        return FileResponse(pdf_path, media_type="application/pdf",
+                            filename=Path(pdf_path).name)
+    return FileResponse(csv_path, media_type="text/csv",
+                        filename=Path(csv_path).name)
 
 
 # ---------------------------------------------------------------------------
