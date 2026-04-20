@@ -66,7 +66,7 @@ P5 does NOT:
 - [x] Task P5.7 — History: GET /history — full activity log with filters
 - [x] Task P5.8 — Report: GET /report + POST /report/export — date range + download
 - [x] Task P5.9 — Profile: GET /profile + POST /profile — view and edit profile.yaml
-- [ ] Task P5.10 — Completion check + merge to main
+- [x] Task P5.10 — Completion check + merge to main
 
 ---
 
