@@ -132,10 +132,10 @@ anthropic==0.40.0
 openai==1.57.0
 
 # Web UI (Phase 5 — not needed until then)
-fastapi==0.115.5
-uvicorn==0.32.1
-jinja2==3.1.4
-python-multipart==0.0.12
+fastapi==0.136.0
+uvicorn[standard]==0.44.0
+jinja2==3.1.6
+python-multipart==0.0.26
 ```
 
 **Constraints:**

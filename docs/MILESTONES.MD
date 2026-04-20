@@ -19,7 +19,7 @@
 | fix | PDF Extraction | ✅ Done | Playwright fetch for advertsdata.com, fetch_failed status, tighter scoring prompt |
 | P3 | Generate Documents | ✅ Done | CV tailoring, cover letter, versioned .docx output |
 | P4 | Learning Loop | ✅ Done | Ratings feed examples, outcome tracking, quality improvement |
-| P5 | Web UI | ⏳ Planned | FastAPI dashboard — all controls in browser |
+| P5 | Web UI | ✅ Done | FastAPI dashboard — all controls in browser |
 
 ---
 

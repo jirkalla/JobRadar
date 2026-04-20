@@ -377,9 +377,8 @@ def get_activity_report(date_from: str, date_to: str) -> list[dict]:
                 j.status, j.score,
                 a.action, a.detail, a.source
             FROM jobs j
-            LEFT JOIN activity_log a ON a.job_id = j.id
-              AND a.action = (
-                  SELECT action FROM activity_log
+            LEFT JOIN activity_log a ON a.id = (
+                  SELECT id FROM activity_log
                   WHERE job_id = j.id
                   ORDER BY ts DESC LIMIT 1
               )
@@ -406,6 +405,62 @@ def get_stats() -> dict:
         "by_status": {row["status"]: row["count"] for row in by_status},
     }
     return stats
+
+
+def get_activity_log(
+    job_id: str | None = None,
+    action: str | None = None,
+    limit: int = 100,
+) -> list[dict]:
+    """Return activity log rows, most recent first.
+
+    Optionally filter by job_id and/or action type.
+
+    Args:
+        job_id: If provided, return only rows for this job.
+        action: If provided, return only rows with this action label.
+        limit: Maximum number of rows to return (default 100).
+    """
+    query = "SELECT * FROM activity_log WHERE 1=1"
+    params: list = []
+    if job_id:
+        query += " AND job_id = ?"
+        params.append(job_id)
+    if action:
+        query += " AND action = ?"
+        params.append(action)
+    query += " ORDER BY ts DESC LIMIT ?"
+    params.append(limit)
+    with get_conn() as conn:
+        rows = conn.execute(query, params).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_documents(job_id: str) -> list[dict]:
+    """Return all documents for a job, ordered by created_at DESC.
+
+    Args:
+        job_id: The related job's primary key.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM documents WHERE job_id = ? ORDER BY created_at DESC",
+            (job_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_document(doc_id: int) -> dict | None:
+    """Return a single document row by id, or None if not found.
+
+    Args:
+        doc_id: The document's primary key.
+    """
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM documents WHERE id = ?", (doc_id,)
+        ).fetchone()
+    return dict(row) if row else None
 
 
 def init_db() -> None:

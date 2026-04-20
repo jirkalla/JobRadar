@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Report — JobRadar{% endblock %}
+
+{% block content %}
+<h4 class="mb-3"><i class="bi bi-file-earmark-bar-graph"></i> Agency Report Export</h4>
+
+{# ── Date range form (GET — updates preview) ── #}
+<form method="get" action="/report" class="row g-2 align-items-end mb-2">
+  <div class="col-auto">
+    <label for="r-from" class="form-label small mb-1">From</label>
+    <input id="r-from" type="date" name="date_from" value="{{ date_from_form }}"
+           class="form-control form-control-sm" required>
+  </div>
+  <div class="col-auto">
+    <label for="r-to" class="form-label small mb-1">To</label>
+    <input id="r-to" type="date" name="date_to" value="{{ date_to_form }}"
+           class="form-control form-control-sm" required>
+  </div>
+  <div class="col-auto">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-eye"></i> Preview
+    </button>
+  </div>
+</form>
+
+{# ── Export form (POST — downloads file) ── #}
+<form method="post" action="/report/export" class="row g-2 align-items-end mb-4">
+  <input type="hidden" name="date_from" value="{{ date_from_form }}">
+  <input type="hidden" name="date_to"   value="{{ date_to_form }}">
+  <div class="col-auto">
+    <label for="r-fmt" class="form-label small mb-1">Format</label>
+    <select id="r-fmt" name="format" class="form-select form-select-sm">
+      <option value="pdf">PDF</option>
+      <option value="csv">CSV</option>
+    </select>
+  </div>
+  <div class="col-auto mt-auto">
+    <button type="submit" class="btn btn-primary btn-sm">
+      <i class="bi bi-download"></i> Export
+    </button>
+  </div>
+</form>
+
+{# ── Message ── #}
+{% if msg %}
+<div class="alert alert-warning py-2">{{ msg }}</div>
+{% endif %}
+
+{# ── Preview table ── #}
+<h6 class="text-muted mb-2">Preview — {{ preview_rows|length }} row{{ 's' if preview_rows|length != 1 else '' }}</h6>
+
+{% if preview_rows %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Applied</th>
+        <th>Company</th>
+        <th>Role</th>
+        <th>Location</th>
+        <th>Status</th>
+        <th>Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in preview_rows %}
+      <tr>
+        <td class="text-muted small">{{ row.applied_at[:4] ~ '-' ~ row.applied_at[4:6] ~ '-' ~ row.applied_at[6:] if row.applied_at else '—' }}</td>
+        <td>{{ row.company or '—' }}</td>
+        <td>{{ row.role_title or '—' }}</td>
+        <td class="text-muted small">{{ row.location or '—' }}</td>
+        <td>
+          <span class="badge
+            {% if row.status == 'approved' %}text-bg-success
+            {% elif row.status == 'rejected' %}text-bg-danger
+            {% elif row.status == 'applied' %}text-bg-primary
+            {% else %}text-bg-secondary
+            {% endif %}">{{ row.status or '—' }}</span>
+        </td>
+        <td class="text-muted small">{{ row.score if row.score is not none else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-muted mt-2">No jobs found in the selected date range.</p>
+{% endif %}
+{% endblock %}
+

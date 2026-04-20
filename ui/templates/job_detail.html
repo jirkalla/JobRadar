@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.company }} — {{ job.role_title }} | JobRadar{% endblock %}
+
+{% block content %}
+
+{# ── Loading overlay (shown while Generate is processing) ─────────── #}
+<div id="loading-overlay"
+     class="d-none position-fixed top-0 start-0 w-100 h-100 flex-column align-items-center justify-content-center"
+     style="background:rgba(255,255,255,0.88);z-index:9999;">
+  <div class="spinner-border text-primary mb-3" style="width:3.5rem;height:3.5rem;" role="status">
+    <span class="visually-hidden">Generating…</span>
+  </div>
+  <p class="fw-semibold fs-5 text-primary mb-1">Generating documents…</p>
+  <p class="text-muted small">Calling AI — this usually takes 15–30 seconds</p>
+</div>
+
+{# ── Score / status badge helpers ── #}
+{% set score = job.score if job.score is not none else 0 %}
+{% if score >= 7 %}
+  {% set score_class = "badge text-bg-success fs-6" %}
+{% elif score >= 5 %}
+  {% set score_class = "badge text-bg-warning fs-6" %}
+{% else %}
+  {% set score_class = "badge text-bg-danger fs-6" %}
+{% endif %}
+
+{% if job.status == 'approved' %}
+  {% set status_class = "badge text-bg-success" %}
+{% elif job.status == 'applied' %}
+  {% set status_class = "badge text-bg-primary" %}
+{% elif job.status == 'interview' %}
+  {% set status_class = "badge text-bg-warning text-dark" %}
+{% elif job.status == 'responded' %}
+  {% set status_class = "badge text-bg-info text-dark" %}
+{% elif job.status == 'reviewed' %}
+  {% set status_class = "badge text-bg-secondary" %}
+{% elif job.status == 'rejected' %}
+  {% set status_class = "badge text-bg-danger" %}
+{% elif job.status == 'closed' %}
+  {% set status_class = "badge text-bg-dark" %}
+{% else %}
+  {% set status_class = "badge text-bg-light text-dark border" %}
+{% endif %}
+
+{# ── Breadcrumb ── #}
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/jobs">Jobs</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ job.company }}</li>
+  </ol>
+</nav>
+
+{# ── Header ── #}
+<div class="d-flex flex-wrap align-items-start gap-3 mb-4">
+  <div class="flex-grow-1">
+    <h1 class="h4 mb-1">{{ job.company }} — {{ job.role_title }}</h1>
+    <p class="text-muted mb-0 small">
+      <i class="bi bi-geo-alt"></i> {{ job.location or '—' }}
+      {% if job.remote_type %}
+        &nbsp;·&nbsp;<i class="bi bi-house-door"></i> {{ job.remote_type }}
+      {% endif %}
+      {% if job.url %}
+        &nbsp;·&nbsp;<a href="{{ job.url }}" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-box-arrow-up-right"></i> Job posting
+        </a>
+      {% endif %}
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+    {% if job.score is not none %}
+    <span class="{{ score_class }}">{{ job.score }}/10</span>
+    {% endif %}
+    <span class="{{ status_class }} fs-6">{{ job.status }}</span>
+  </div>
+</div>
+
+{# ── Action buttons ── #}
+<div class="mb-4 d-flex gap-2 flex-wrap">
+  {% if job.status == 'reviewed' %}
+  <form method="post" action="/jobs/{{ job.id }}/status">
+    <input type="hidden" name="action" value="approve">
+    <button type="submit" class="btn btn-success btn-sm">
+      <i class="bi bi-check-circle"></i> Approve
+    </button>
+  </form>
+  {% endif %}
+  {% if job.status == 'approved' %}
+  <form method="post" action="/jobs/{{ job.id }}/generate">
+    <button type="submit" class="btn btn-primary btn-sm">
+      <i class="bi bi-lightning"></i> Generate
+    </button>
+  </form>
+  {% endif %}
+  {% if job.status in ('applied', 'responded', 'interview') %}
+  <a href="/jobs/{{ job.id }}/status" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-pencil-square"></i> Record Outcome
+  </a>
+  {% endif %}
+</div>
+
+{# ── Five-section tabs ── #}
+<ul class="nav nav-tabs mb-0" id="jobTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="tab-overview" data-bs-toggle="tab"
+            data-bs-target="#pane-overview" type="button" role="tab">
+      <i class="bi bi-info-circle"></i> Overview
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-jd" data-bs-toggle="tab"
+            data-bs-target="#pane-jd" type="button" role="tab">
+      <i class="bi bi-file-text"></i> Job Description
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-docs" data-bs-toggle="tab"
+            data-bs-target="#pane-docs" type="button" role="tab">
+      <i class="bi bi-folder2-open"></i> Documents
+      {% if documents %}
+      <span class="badge text-bg-secondary ms-1">{{ documents|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-outcomes" data-bs-toggle="tab"
+            data-bs-target="#pane-outcomes" type="button" role="tab">
+      <i class="bi bi-trophy"></i> Outcomes
+      {% if outcomes %}
+      <span class="badge text-bg-secondary ms-1">{{ outcomes|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="tab-activity" data-bs-toggle="tab"
+            data-bs-target="#pane-activity" type="button" role="tab">
+      <i class="bi bi-clock-history"></i> Activity
+      {% if activity %}
+      <span class="badge text-bg-secondary ms-1">{{ activity|length }}</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content border border-top-0 rounded-bottom p-3 mb-4" id="jobTabsContent">
+
+  {# ── 1. Overview ── #}
+  <div class="tab-pane fade show active" id="pane-overview" role="tabpanel">
+    <div class="row g-4 mt-1">
+      <div class="col-md-6">
+        <h6 class="text-muted text-uppercase small fw-semibold">Score Reason</h6>
+        <p class="mb-3">{{ job.score_reason or '—' }}</p>
+
+        <h6 class="text-muted text-uppercase small fw-semibold">Strong Matches</h6>
+        {% if job.strong_matches %}
+        <ul class="list-unstyled mb-3">
+          {% for item in job.strong_matches %}
+          <li><i class="bi bi-check-circle-fill text-success me-1"></i>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted small mb-3">—</p>
+        {% endif %}
+
+        <h6 class="text-muted text-uppercase small fw-semibold">Concerns</h6>
+        {% if job.concerns %}
+        <ul class="list-unstyled mb-3">
+          {% for item in job.concerns %}
+          <li><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted small mb-3">—</p>
+        {% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <h6 class="text-muted text-uppercase small fw-semibold">Tech Stack</h6>
+        {% if job.tech_stack %}
+        <div class="mb-3">
+          {% for item in job.tech_stack %}
+          <span class="badge text-bg-light border text-dark me-1 mb-1">{{ item }}</span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-3">—</p>
+        {% endif %}
+
+        <h6 class="text-muted text-uppercase small fw-semibold">Salary</h6>
+        <p class="mb-3">{{ job.salary or '—' }}</p>
+
+        <h6 class="text-muted text-uppercase small fw-semibold">Language</h6>
+        <p class="mb-3">{{ job.language or '—' }}</p>
+
+        {% if job.notes %}
+        <h6 class="text-muted text-uppercase small fw-semibold">Notes</h6>
+        <p class="mb-3">{{ job.notes }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── Dates row ── #}
+    <hr>
+    <div class="row text-muted small g-2">
+      <div class="col-auto">
+        <strong>Created:</strong> {{ (job.created_at or '')[:16] | replace('T', ' ') }}
+      </div>
+      <div class="col-auto">
+        <strong>Updated:</strong> {{ (job.updated_at or '')[:16] | replace('T', ' ') }}
+      </div>
+      {% if job.applied_at %}
+      <div class="col-auto">
+        <strong>Applied:</strong> {{ job.applied_at[:4] }}-{{ job.applied_at[4:6] }}-{{ job.applied_at[6:] }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── 2. Job Description ── #}
+  <div class="tab-pane fade" id="pane-jd" role="tabpanel">
+    {% if job.jd_text %}
+    <div class="mt-2 p-3 bg-light border rounded small"
+         style="max-height:60vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word; font-family:inherit; line-height:1.6;">{{ job.jd_text }}</div>
+    {% else %}
+    <p class="text-muted mt-3">No job description stored.</p>
+    {% endif %}
+  </div>
+
+  {# ── 3. Documents ── #}
+  <div class="tab-pane fade" id="pane-docs" role="tabpanel">
+    {% if documents %}
+    <div class="table-responsive mt-2">
+      <table class="table table-sm table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Type</th>
+            <th>Path</th>
+            <th>Version</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in documents %}
+          <tr>
+            <td><span class="badge text-bg-secondary">{{ doc.doc_type }}</span></td>
+            <td class="small text-muted font-monospace">{{ doc.path }}</td>
+            <td class="small">{{ doc.version or '—' }}</td>
+            <td>
+              {% if doc.rating %}
+              <span class="text-warning me-1">
+                {% for i in range(doc.rating) %}★{% endfor %}{% for i in range(5 - doc.rating) %}☆{% endfor %}
+              </span>
+              {% endif %}
+              <form method="post" action="/documents/{{ doc.id }}/rate" class="d-inline-flex align-items-center gap-1">
+                <input type="number" name="rating" min="1" max="5" value="{{ doc.rating or '' }}"
+                       class="form-control form-control-sm" style="width:4.5rem;" required>
+                <button type="submit" class="btn btn-sm btn-outline-primary">Rate</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted mt-3">No documents generated yet.</p>
+    {% endif %}
+  </div>
+
+  {# ── 4. Outcomes ── #}
+  <div class="tab-pane fade" id="pane-outcomes" role="tabpanel">
+    {% if outcomes %}
+    <div class="table-responsive mt-2">
+      <table class="table table-sm align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Notes</th>
+            <th>Recorded</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in outcomes %}
+          <tr>
+            <td><span class="badge text-bg-secondary">{{ o.reply_type }}</span></td>
+            <td class="small">{{ o.reply_date or '—' }}</td>
+            <td class="small">{{ o.notes or '—' }}</td>
+            <td class="small text-muted">{{ (o.created_at or '')[:16] | replace('T', ' ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted mt-3">No outcomes recorded.</p>
+    {% endif %}
+  </div>
+
+  {# ── 5. Activity ── #}
+  <div class="tab-pane fade" id="pane-activity" role="tabpanel">
+    {% if activity %}
+    <div class="table-responsive mt-2">
+      <table class="table table-sm align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Detail</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in activity %}
+          <tr>
+            <td class="small text-muted text-nowrap">
+              {{ (row.ts or '')[:16] | replace('T', ' ') }}
+            </td>
+            <td><span class="badge text-bg-light border text-dark">{{ row.action }}</span></td>
+            <td class="small">{{ row.detail or '—' }}</td>
+            <td class="small text-muted">{{ row.source or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted mt-3">No activity logged yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+{% if job.status == 'approved' %}
+<script>
+  document.querySelector('form[action="/jobs/{{ job.id }}/generate"]')
+    .addEventListener('submit', function () {
+      var ov = document.getElementById('loading-overlay');
+      ov.classList.remove('d-none');
+      ov.classList.add('d-flex');
+    });
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var hash = window.location.hash.replace('#', '');
+    if (hash) {
+      var btn = document.querySelector('[data-bs-target="#pane-' + hash + '"]');
+      if (btn) { bootstrap.Tab.getOrCreateInstance(btn).show(); }
+    }
+  })();
+</script>
+
+{% endblock %}
