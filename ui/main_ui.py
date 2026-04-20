@@ -35,6 +35,7 @@ from src.db import (
 from src.report import generate_report
 from src.generator import _slugify
 from src.pdf_writer import cover_letter_md_to_pdf, cv_md_to_pdf
+from src._version import __version__
 
 BASE_DIR = Path(__file__).parent
 TMP_DIR  = Path("output/.tmp")
@@ -52,6 +53,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="JobRadar", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+templates.env.globals["app_version"] = __version__
 
 
 @app.get("/", response_class=HTMLResponse)

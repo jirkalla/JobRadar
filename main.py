@@ -13,9 +13,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from src.pdf_writer import cv_md_to_pdf, cover_letter_md_to_pdf
+from src._version import __version__
 
 
-VERSION = "job-tracker v0.1.0"
+VERSION = f"job-tracker v{__version__}"
 
 
 def load_profile() -> dict:

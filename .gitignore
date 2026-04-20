@@ -16,6 +16,9 @@ examples/cv_base.docx
 examples/cv_base.md
 examples/ratings.json
 
+# One-time data scripts (contain personal application history)
+scripts/seed_backfill.py
+
 # Python
 __pycache__/
 *.pyc
