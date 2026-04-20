@@ -537,3 +537,52 @@ async def history(
         "action":    action,
         "limit":     limit,
     })
+
+
+# ---------------------------------------------------------------------------
+# Profile
+# ---------------------------------------------------------------------------
+
+PROFILE_PATH = Path("config/profile.yaml")
+
+
+@app.get("/profile", response_class=HTMLResponse)
+async def profile_get(
+    request: Request,
+    msg: str = Query(default=""),
+) -> HTMLResponse:
+    """Display the editable profile fields."""
+    profile = yaml.safe_load(PROFILE_PATH.read_text(encoding="utf-8"))
+    hybrid_cities_str = ", ".join(profile.get("restrictions", {}).get("hybrid_cities", []))
+    return templates.TemplateResponse(request, "profile.html", {
+        "profile":           profile,
+        "hybrid_cities_str": hybrid_cities_str,
+        "msg":               msg,
+    })
+
+
+@app.post("/profile", response_class=HTMLResponse)
+async def profile_post(
+    request: Request,
+    name:              str = Form(...),
+    email:             str = Form(...),
+    min_score_to_show: str = Form(...),
+    hybrid_cities:     str = Form(...),
+    provider:          str = Form(...),
+    model:             str = Form(...),
+) -> Response:
+    """Save the listed profile fields surgically — all other keys preserved."""
+    profile = yaml.safe_load(PROFILE_PATH.read_text(encoding="utf-8"))
+
+    profile["personal"]["name"]  = name
+    profile["personal"]["email"] = email
+    profile["preferences"]["min_score_to_show"] = int(min_score_to_show)
+    profile["restrictions"]["hybrid_cities"] = [
+        c.strip() for c in hybrid_cities.split(",") if c.strip()
+    ]
+    profile["ai"]["provider"] = provider
+    profile["ai"]["model"]    = model
+
+    PROFILE_PATH.write_text(yaml.dump(profile, allow_unicode=True), encoding="utf-8")
+    return RedirectResponse("/profile?msg=Profile+saved", status_code=303)
+
