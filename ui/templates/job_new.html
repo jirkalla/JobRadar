@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}New Job — JobRadar{% endblock %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/jobs">Jobs</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Add Job Manually</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-md-9" style="max-width: 720px;">
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title mb-4">Add Job Manually</h5>
+
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/jobs/new">
+
+          <div class="mb-3">
+            <label for="company" class="form-label fw-semibold">
+              Company <span class="text-danger">*</span>
+            </label>
+            <input id="company" name="company" type="text" class="form-control"
+                   value="{{ form.company|default('') }}" required
+                   placeholder="e.g. Acme GmbH">
+          </div>
+
+          <div class="mb-3">
+            <label for="role_title" class="form-label fw-semibold">
+              Role Title <span class="text-danger">*</span>
+            </label>
+            <input id="role_title" name="role_title" type="text" class="form-control"
+                   value="{{ form.role_title|default('') }}" required
+                   placeholder="e.g. Senior Data Engineer">
+          </div>
+
+          <div class="mb-3">
+            <label for="location" class="form-label fw-semibold">Location</label>
+            <input id="location" name="location" type="text" class="form-control"
+                   value="{{ form.location|default('') }}"
+                   placeholder="e.g. Berlin">
+          </div>
+
+          <div class="mb-3">
+            <label for="url" class="form-label fw-semibold">URL</label>
+            <input id="url" name="url" type="url" class="form-control"
+                   value="{{ form.url|default('') }}"
+                   placeholder="https://...">
+          </div>
+
+          <div class="row">
+            <div class="col-sm-6 mb-3">
+              <label for="remote_type" class="form-label fw-semibold">Remote Type</label>
+              <select id="remote_type" name="remote_type" class="form-select">
+                <option value="remote"  {% if form.remote_type|default('unclear') == 'remote'  %}selected{% endif %}>Remote</option>
+                <option value="hybrid"  {% if form.remote_type|default('unclear') == 'hybrid'  %}selected{% endif %}>Hybrid</option>
+                <option value="onsite"  {% if form.remote_type|default('unclear') == 'onsite'  %}selected{% endif %}>On-site</option>
+                <option value="unclear" {% if form.remote_type|default('unclear') == 'unclear' or not form.remote_type %}selected{% endif %}>Unclear</option>
+              </select>
+            </div>
+
+            <div class="col-sm-6 mb-3">
+              <label for="language" class="form-label fw-semibold">Language</label>
+              <select id="language" name="language" class="form-select">
+                <option value="en" {% if form.language|default('en') == 'en' or not form.language %}selected{% endif %}>English</option>
+                <option value="de" {% if form.language|default('en') == 'de' %}selected{% endif %}>Deutsch</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="salary" class="form-label fw-semibold">Salary</label>
+            <input id="salary" name="salary" type="text" class="form-control"
+                   value="{{ form.salary|default('') }}"
+                   placeholder="e.g. 80,000–95,000 EUR">
+          </div>
+
+          <div class="mb-4">
+            <label for="jd_text" class="form-label fw-semibold">
+              Job Description <span class="text-danger">*</span>
+            </label>
+            <textarea id="jd_text" name="jd_text" rows="12" class="form-control"
+                      required placeholder="Paste the full job description here">{{ form.jd_text|default('') }}</textarea>
+          </div>
+
+          <div class="d-flex align-items-center gap-3">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-plus-circle"></i> Add Job
+            </button>
+            <a href="/jobs" class="text-secondary">← Back to Jobs</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
