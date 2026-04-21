@@ -20,6 +20,7 @@
 | P3 | Generate Documents | ✅ Done | CV tailoring, cover letter, versioned .docx output |
 | P4 | Learning Loop | ✅ Done | Ratings feed examples, outcome tracking, quality improvement |
 | P5 | Web UI | ✅ Done | FastAPI dashboard — all controls in browser |
+| P6 | Manual Job Entry | ⏳ Planned | Add jobs manually via UI — no EML required |
 
 ---
 
@@ -206,6 +207,40 @@ documents, exporting agency report — all in one UI.
 - Profile editable and saved from UI
 - Agency report exportable from UI
 - Works on Chrome/Edge on Windows
+
+---
+
+## Phase 6 — Manual Job Entry
+
+**Goal:** Allow adding a job position directly via the Web UI without requiring an
+EML digest. User pastes the job description and fills in basic fields; the job enters
+the system with score=0, status="new" and proceeds through the existing approve →
+generate → confirm workflow unchanged.
+
+**Status:** ⏳ Planned
+**Branch:** feature/p6-manual-job-entry
+**Task file:** /docs/Tasks_P6.md
+
+**What is added:**
+- GET /jobs/new — manual job entry form
+- POST /jobs/new — inserts job via insert_job(data, source="manual"), redirects to detail
+- ui/templates/job_new.html — Bootstrap form: Company, Role Title, Location, URL,
+  Remote Type, Language, Salary, Job Description (textarea)
+- Navigation button on /jobs list page linking to /jobs/new
+
+**What is NOT added:**
+- AI scoring on insert — score=0, status="new" on entry
+- URL fetching or JD auto-extraction
+- Any change to existing routes, templates, or DB schema
+
+**Acceptance Criteria:**
+- GET /jobs/new renders form; all fields present and labeled
+- POST /jobs/new with valid data → job created → redirected to job detail
+- POST /jobs/new with missing required field → form reloaded with inline error
+- New job appears in /jobs list with score=0, status=new
+- Dashboard activity log shows manual-source entry (italic row)
+- Full workflow works: approve → generate → confirm unchanged
+- Route order: GET /jobs/new registered before GET /jobs/{job_id}
 
 ---
 
