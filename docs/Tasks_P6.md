@@ -58,31 +58,31 @@ CRITICAL — Route ordering:
 
 ## Progress
 
-- [ ] Task P6.1 — Backend: GET /jobs/new + POST /jobs/new routes
-- [ ] Task P6.2 — Frontend: job_new.html template + navigation button in jobs.html
-- [ ] Task P6.3 — Completion check + commit
+- [x] Task P6.1 — Backend: GET /jobs/new + POST /jobs/new routes
+- [x] Task P6.2 — Frontend: job_new.html template + navigation button in jobs.html
+- [x] Task P6.3 — Completion check + commit
 
 ---
 
 ## Completion Checklist
 
 ### Agent verifies
-- [ ] python -m py_compile ui/main_ui.py — no errors
-- [ ] GET /jobs/new returns 200 (form renders)
-- [ ] POST /jobs/new with valid data → redirects to /jobs/{id}
-- [ ] POST /jobs/new with missing company → returns form with inline error
-- [ ] POST /jobs/new with missing role_title → returns form with inline error
-- [ ] POST /jobs/new with missing jd_text → returns form with inline error
-- [ ] New job has score=0, status="new", source logged as "manual" in activity_log
+- [x] python -m py_compile ui/main_ui.py — no errors
+- [x] GET /jobs/new returns 200 (form renders)
+- [x] POST /jobs/new with valid data → redirects to /jobs/{id}
+- [x] POST /jobs/new with missing company → returns form with inline error
+- [x] POST /jobs/new with missing role_title → returns form with inline error
+- [x] POST /jobs/new with missing jd_text → returns form with inline error
+- [x] New job has score=0, status="new", source logged as "manual" in activity_log
 
 ### Jiri verifies in browser
-- [ ] /jobs/new form renders correctly — all fields visible, labels clear
-- [ ] All dropdowns populated (remote_type, language)
-- [ ] Submitting valid form → redirected to job detail page
-- [ ] Job detail shows correct company, role, JD text, score=0
-- [ ] Dashboard activity log shows new entry with manual source (italic row)
-- [ ] /jobs list includes the new job
-- [ ] Full generate flow works for the manually added job (approve → generate → confirm)
+- [x] /jobs/new form renders correctly — all fields visible, labels clear
+- [x] All dropdowns populated (remote_type, language)
+- [x] Submitting valid form → redirected to job detail page
+- [x] Job detail shows correct company, role, JD text, score=0
+- [x] Dashboard activity log shows new entry with manual source (italic row)
+- [x] /jobs list includes the new job
+- [x] Full generate flow works for the manually added job (approve → generate → confirm)
 
 ---
 
