@@ -26,6 +26,7 @@ from src.db import (
     get_jobs,
     get_outcomes,
     get_weekly_summary,
+    insert_job,
     log_action,
     rate_document,
     record_outcome,
@@ -92,6 +93,69 @@ async def job_list(
         "status":    status or "",
         "min_score": min_score,
     })
+
+
+@app.get("/jobs/new", response_class=HTMLResponse)
+async def new_job_form(request: Request) -> HTMLResponse:
+    """Render the manual job entry form."""
+    return templates.TemplateResponse(request, "job_new.html", {"error": None, "form": {}})
+
+
+@app.post("/jobs/new")
+async def new_job_submit(request: Request) -> Response:
+    """Accept manual job entry form, insert job, redirect to detail."""
+    form_data = await request.form()
+    company    = (form_data.get("company")    or "").strip()
+    role_title = (form_data.get("role_title") or "").strip()
+    jd_text    = (form_data.get("jd_text")    or "").strip()
+    location   = (form_data.get("location")   or "").strip()
+    url        = (form_data.get("url")        or "").strip()
+    remote_type = form_data.get("remote_type") or "unclear"
+    language   = form_data.get("language")    or "en"
+    salary     = (form_data.get("salary")     or "").strip()
+
+    form_dict = {
+        "company":     company,
+        "role_title":  role_title,
+        "jd_text":     jd_text,
+        "location":    location,
+        "url":         url,
+        "remote_type": remote_type,
+        "language":    language,
+        "salary":      salary,
+    }
+
+    if not company or not role_title or not jd_text:
+        return templates.TemplateResponse(
+            request,
+            "job_new.html",
+            {
+                "error": "Company, Role Title, and Job Description are required.",
+                "form":  form_dict,
+            },
+            status_code=422,
+        )
+
+    data = {
+        "company":        company,
+        "role_title":     role_title,
+        "location":       location or None,
+        "remote_type":    remote_type,
+        "url":            url or None,
+        "language":       language,
+        "jd_text":        jd_text,
+        "salary":         salary or None,
+        "score":          0,
+        "score_reason":   "(not scored — added manually)",
+        "status":         "new",
+        "source_eml":     None,
+        "tech_stack":     "[]",
+        "strong_matches": "[]",
+        "concerns":       "[]",
+        "notes":          "",
+    }
+    job_id = insert_job(data, source="manual")
+    return RedirectResponse(url=f"/jobs/{job_id}", status_code=303)
 
 
 @app.get("/jobs/{job_id}", response_class=HTMLResponse)

@@ -58,7 +58,7 @@ CRITICAL — Route ordering:
 
 ## Progress
 
-- [ ] Task P6.1 — Backend: GET /jobs/new + POST /jobs/new routes
+- [x] Task P6.1 — Backend: GET /jobs/new + POST /jobs/new routes
 - [ ] Task P6.2 — Frontend: job_new.html template + navigation button in jobs.html
 - [ ] Task P6.3 — Completion check + commit
 
