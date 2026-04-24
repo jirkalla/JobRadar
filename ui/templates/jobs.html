@@ -3,40 +3,57 @@
 {% block title %}Jobs — JobRadar{% endblock %}
 
 {% block content %}
-<h1 class="h4 mb-4"><i class="bi bi-briefcase"></i> Jobs</h1>
+<h1 class="h4 mb-3"><i class="bi bi-briefcase"></i> Jobs</h1>
 
-{# Filter bar #}
-<form method="get" action="/jobs" class="row g-2 align-items-end mb-4">
-  <div class="col-sm-4 col-md-3">
-    <label for="status" class="form-label small fw-semibold">Status</label>
-    <select id="status" name="status" class="form-select form-select-sm">
-      <option value="" {% if not status %}selected{% endif %}>All</option>
-      {% for s in ['new','reviewed','approved','applied','responded','interview','closed','rejected'] %}
-      <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
-      {% endfor %}
-    </select>
+{# --- Row 1: Status quick-filter pills + New Job action --- #}
+<div class="d-flex flex-wrap gap-1 align-items-center justify-content-between mb-2">
+  <div class="d-flex flex-wrap gap-1" role="group" aria-label="Filter by status">
+    <a href="/jobs{% if min_score %}?min_score={{ min_score }}{% endif %}"
+       class="btn btn-sm {% if not status %}btn-secondary{% else %}btn-outline-secondary{% endif %}">All</a>
+    {% for s, label, col in [
+        ('new',       'New',       'warning'),
+        ('reviewed',  'Reviewed',  'secondary'),
+        ('approved',  'Approved',  'success'),
+        ('applied',   'Applied',   'primary'),
+        ('responded', 'Responded', 'info'),
+        ('interview', 'Interview', 'warning'),
+        ('closed',    'Closed',    'dark'),
+        ('rejected',  'Rejected',  'danger'),
+    ] %}
+    <a href="/jobs?status={{ s }}{% if min_score %}&min_score={{ min_score }}{% endif %}"
+       class="btn btn-sm {% if status == s %}btn-{{ col }}{% else %}btn-outline-{{ col }}{% endif %}">{{ label }}</a>
+    {% endfor %}
   </div>
-  <div class="col-sm-3 col-md-2">
-    <label for="min_score" class="form-label small fw-semibold">Min Score</label>
+  <a href="/jobs/new" class="btn btn-success btn-sm">
+    <i class="bi bi-plus-circle"></i> New Job
+  </a>
+</div>
+
+{# --- Row 2: Search + min score + count --- #}
+<div class="row g-2 align-items-center mb-3">
+  <div class="col">
+    <input id="jobSearch" type="search" class="form-control form-control-sm"
+           placeholder="Search company or role title…" autocomplete="off">
+  </div>
+  <form method="get" action="/jobs" class="col-auto d-flex gap-2 align-items-center">
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <label for="min_score" class="form-label small fw-semibold mb-0 text-nowrap">Min score</label>
     <input id="min_score" name="min_score" type="number" min="0" max="10"
-           value="{{ min_score }}" class="form-control form-control-sm">
-  </div>
+           value="{{ min_score }}" class="form-control form-control-sm" style="width:5rem">
+    <button type="submit" class="btn btn-outline-primary btn-sm">Go</button>
+    {% if min_score %}
+    <a href="/jobs{% if status %}?status={{ status }}{% endif %}" class="btn btn-outline-secondary btn-sm" title="Clear score filter">×</a>
+    {% endif %}
+  </form>
   <div class="col-auto">
-    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
-    <a href="/jobs" class="btn btn-outline-secondary btn-sm ms-1">Reset</a>
+    <span id="jobCount" class="text-muted small">{{ jobs|length }} job{{ 's' if jobs|length != 1 }}</span>
   </div>
-  <div class="col-auto ms-auto align-self-end d-flex align-items-center gap-2">
-    <span class="text-muted small">{{ jobs|length }} job{{ 's' if jobs|length != 1 }}</span>
-    <a href="/jobs/new" class="btn btn-success btn-sm">
-      <i class="bi bi-plus-circle"></i> New Job
-    </a>
-  </div>
-</form>
+</div>
 
-{# Job table #}
+{# --- Job table --- #}
 {% if jobs %}
 <div class="table-responsive">
-  <table class="table table-sm table-hover align-middle">
+  <table id="jobTable" class="table table-sm table-hover align-middle">
     <thead class="table-light">
       <tr>
         <th style="width:4rem">Score</th>
@@ -88,9 +105,7 @@
         <td>{{ job.role_title or '—' }}</td>
         <td class="text-muted small">{{ job.location or '—' }}</td>
         <td><span class="{{ status_class }}">{{ job.status }}</span></td>
-        <td class="text-muted small text-nowrap" title="{{ date_title }}">
-          {{ date_display }}
-        </td>
+        <td class="text-muted small text-nowrap" title="{{ date_title }}">{{ date_display }}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -99,4 +114,31 @@
 {% else %}
 <div class="alert alert-secondary">No jobs match the current filters.</div>
 {% endif %}
+
+<script>
+(function () {
+  var input   = document.getElementById('jobSearch');
+  var tbody   = document.querySelector('#jobTable tbody');
+  var countEl = document.getElementById('jobCount');
+  if (!input || !tbody) return;
+
+  var totalRows = tbody.querySelectorAll('tr').length;
+
+  input.addEventListener('input', function () {
+    var q = this.value.trim().toLowerCase();
+    var visible = 0;
+    tbody.querySelectorAll('tr').forEach(function (row) {
+      var cells   = row.querySelectorAll('td');
+      var company = cells[1] ? cells[1].textContent.toLowerCase() : '';
+      var role    = cells[2] ? cells[2].textContent.toLowerCase() : '';
+      var match   = !q || company.indexOf(q) !== -1 || role.indexOf(q) !== -1;
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    countEl.textContent = q
+      ? (visible + ' of ' + totalRows + ' job' + (totalRows !== 1 ? 's' : ''))
+      : (totalRows + ' job' + (totalRows !== 1 ? 's' : ''));
+  });
+})();
+</script>
 {% endblock %}
