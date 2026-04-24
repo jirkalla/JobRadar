@@ -6,6 +6,7 @@
 |------|------|------|
 | 1 | Download EML files from webmail | CLI `fetch` |
 | 2 | Process jobs (parse + AI score) | CLI `process` |
+| 2b | Add job manually (optional) | UI `/jobs/new` + `score_job.py` |
 | 3 | Review and approve wanted jobs | UI or CLI `review` |
 | 4 | Reject unwanted jobs | UI or CLI `review` |
 | 5 | Generate CV + Cover Letter | UI (recommended) or CLI `generate` |
@@ -49,6 +50,42 @@ What happens:
 - AI scores the kept jobs (~2 min per digest)
 - Saves scored jobs to the database
 - Moves processed `.eml` files to `data/processed/`
+
+---
+
+## Step 2b — Add a Job Manually (optional)
+
+Use this when you find a job outside the digest feed (e.g. direct company website, LinkedIn, referral).
+
+**Start the UI:**
+```bash
+python start_ui.py
+# open http://localhost:8000/jobs/new
+```
+
+Fill in the form:
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| **Company** | ✅ | e.g. `Deutsche Bank AG` |
+| **Role Title** | ✅ | e.g. `Engineering Lead - Data Infrastructure` |
+| **Location** | — | e.g. `Berlin` |
+| **URL** | — | Original job posting URL |
+| **Remote Type** | — | Remote / Hybrid / On-site / Unclear |
+| **Language** | — | English or Deutsch |
+| **Salary** | — | e.g. `80,000–95,000 EUR` |
+| **Job Description** | ✅ | Paste the full JD text |
+
+Click **Add Job**. The job is saved with status `new` and score `0` (not AI-scored yet).
+
+**Then score it:**
+```bash
+python scripts/score_job.py <job_id>
+```
+
+> The job ID is shown in the URL after submission: `/jobs/<id>`
+
+After scoring, continue from **Step 3** as normal.
 
 ---
 

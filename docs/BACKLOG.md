@@ -65,3 +65,72 @@ Items deferred from P5 implementation. Prioritize after P5.10 is merged.
 - Defer until job count exceeds ~100
 - When added: use `LIMIT`/`OFFSET` in `get_jobs()`, pass `page` and `per_page` params
 - Show "Page X of Y" and prev/next controls in the table footer
+
+---
+
+## Prompt & AI — Structural Improvements
+
+### 1. Voice block — structural problem across all prompts 🔴
+**Problem:** `voice` in `profile.yaml` serves two incompatible purposes. It is written as a cover letter narrative (biographical facts, eBay decade, basketball, Potsdam) but is injected into prompts as a tone/style signal. Every prompt using `{voice}` must warn the AI to ignore the factual content — an unreliable instruction.
+
+**Root cause:** No dedicated fact-free tone signal exists. `voice` is doing two jobs and does neither cleanly.
+
+**Fix:** Add a separate `background` key to `profile.yaml` — 2–3 sentences, structured facts only, for scoring and CV context. Keep `voice` for `generate.txt` only, where biographical narrative is useful as a style calibrator.
+
+```yaml
+background: |
+  A decade at eBay building financial reporting infrastructure and data pipelines
+  at enterprise scale — C# backend systems, Python automation, Snowflake migration,
+  SQL processes where correctness was non-negotiable because C-level finance teams
+  read the output.
+```
+
+**Affected files:**
+- `config/profile.yaml` — add `background` key
+- `config/prompts/score.txt` — add `{background}` block (already designed, held back)
+- `src/scorer.py` — pass `background` into `build_score_prompt()` `template.format()`
+- `config/prompts/cv.txt` — replace `{voice}` with `{background}` (CV tailoring doesn't need biographical tone)
+- `src/generator.py` — pass `background` into `build_cv_prompt()` `template.format()`
+- `generate.txt` keeps `{voice}` — the one context where full narrative is appropriate
+
+---
+
+### 2. base_cv_text — not wired into cover letter generation 🟠
+**Problem:** `generate.txt` lacks a CV fact source, so paragraph 2 in cover letters has no authoritative anchoring. The placeholder and code support already exist for CV tailoring (`cv.txt` + `build_cv_prompt()`) but were not extended to cover letter generation.
+
+**Fix:**
+1. Add `{base_cv_text}` section to `config/prompts/generate.txt`
+2. In `src/generator.py` `build_cover_letter_prompt()`:
+   - Read `examples/cv_base.md`
+   - Pass `base_cv_text=base_cv_text` in `template.format()`
+   - Update all callers accordingly
+
+**Affected files:**
+- `config/prompts/generate.txt`
+- `src/generator.py` — `build_cover_letter_prompt()` + callers
+- `main.py` — if it calls `build_cover_letter_prompt()` directly
+
+**Note:** A session prompt for this task was already written (see session history).
+
+---
+
+### 3. BANNED_PHRASES dead code in generator.py 🟡
+**Problem:** `BANNED_PHRASES` is defined in `generator.py` (~line 27) but never used in the generation flow. The banned phrases list in `generate.txt` is the only enforcement. The two lists are already out of sync — the code list is missing `'i have seen firsthand'`, `'spannend'`, `'begeistert'`.
+
+**Recommended fix:** Wire `BANNED_PHRASES` into a post-generation check that scans output and warns (CLI output or UI message) if a banned phrase appears — adds real enforcement without blocking generation.
+
+**Alternative:** Remove `BANNED_PHRASES` from `generator.py` entirely as dead code.
+
+**Affected files:**
+- `src/generator.py`
+
+---
+
+### Dependency order for Prompt & AI items
+1. `profile.yaml` — add `background` key
+2. `scorer.py` — wire `{background}` (unblocks `score.txt` improvement)
+3. `generator.py` — pass `base_cv_text` (unblocks `generate.txt` improvement)
+4. `generator.py` — resolve `BANNED_PHRASES` dead code
+5. Prompt commits — `score.txt`, `cv.txt` updates (separate from code commits)
+
+Items 1–2 (background key) and item 3 (base_cv_text) are independent and can be done in parallel.
