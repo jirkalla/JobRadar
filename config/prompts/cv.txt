@@ -12,8 +12,10 @@ Solid:  {skills_solid}
 
 {voice}
 
-The voice section above describes writing style and register ONLY.
-Do not extract factual claims or specific project names from it.
+The voice section above describes tone, directness, register, and sentence rhythm ONLY.
+Do not use it as a source of facts, dates, company names, or project descriptions.
+Example: "I spent a decade at eBay" is a fact — do not use it.
+The directness of that sentence is style — do use it.
 Use it to calibrate tone: direct, specific, no corporate filler.
 The profile summary must sound like the same person who wrote the voice section.
 
@@ -45,10 +47,15 @@ Write exactly 3 sentences:
               Name the tools or problem type. Do not write anything that could apply to any engineer.
   Sentence 3: one technical or domain-specific detail genuinely relevant to this role
               and not already covered in sentences 1–2.
-              If nothing stands out, do not pad — make sentence 2 stronger instead.
+              If no third genuinely relevant detail exists, extend sentence 2 with
+              a specific tool, scale indicator, or problem type from the base CV
+              rather than adding a generic third sentence.
 
 skills_to_highlight and skills_to_remove are recommendations for the human
 to apply manually — they will not be auto-applied.
+skills_to_highlight: maximum 5 items.
+skills_to_remove: list only skills that would actively distract from this
+specific role — not skills that are merely less relevant.
 
 --- BANNED PHRASES ---
 
@@ -78,8 +85,13 @@ Return a JSON object with exactly these keys and no others:
 {{
   "profile_summary": "full rewritten profile summary, exactly 3 sentences, impersonal style",
   "skills_to_highlight": ["skill directly required by this JD", "..."],
-  "skills_to_remove": ["skill not relevant to this JD", "..."],
-  "changes_explained": "one sentence: what changed and why"
+  "skills_to_remove": ["skill that would actively distract from this role — not merely less relevant", "..."],
+  "changes_explained": "one sentence naming the specific angle taken and why — not a generic description of the task"
 }}
+
+changes_explained examples:
+  Bad:  "Rewrote summary to better match the job description."
+  Good: "Led with financial data infrastructure to match DWS's data platform focus,
+         moved Snowflake to sentence 2 as a direct stack match."
 
 JSON only. No markdown. No explanation. No additional keys.

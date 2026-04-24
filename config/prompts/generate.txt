@@ -15,9 +15,11 @@ Skills — Solid:  {skills_solid}
 Voice and working style:
 {voice}
 
-The voice section above describes writing style, tone, and register ONLY.
-Do not extract factual claims, project names, or experience examples from it.
-All concrete work examples must come from the skills sections and job listing only.
+The voice section above describes tone, directness, register, and sentence rhythm ONLY.
+Do not use it as a source of facts, dates, company names, or project descriptions.
+Example: "I spent a decade at eBay" is a fact — do not use it.
+The directness of that sentence is style — do use it.
+All concrete work examples must come from the skills sections only.
 
 --- JOB LISTING ---
 
@@ -34,7 +36,9 @@ Study them for:
   - Sentence structure and register — formal but not stiff
   - What is NOT in them: no enthusiasm performance, no soft claims
 
-Do not copy phrases or sentences. The style — not the content — is what transfers.
+Do not extract facts, company names, dates, or specific claims from these examples.
+Do not copy phrases or sentences.
+The style and rhythm — not the content — is what transfers.
 
 {examples_section}
 
@@ -50,6 +54,8 @@ Before writing a single word of the letter, do this internally:
    not a vague claim. Do not invent experience not supported by the skills sections.
 
 3. Identify the language of the job listing: German or English.
+   If the listing is mixed-language, default to English unless the body text
+   is predominantly German.
    The entire letter must be written in that language. Every word.
 
 4. If nothing in the job listing is genuinely interesting or specific, do not
@@ -70,8 +76,9 @@ Write exactly 4 paragraphs. Each paragraph: 2–4 sentences. No more.
     One concrete example anchored in the candidate's actual skills that is relevant
     to this specific job. Name the tools, the problem type, the outcome. No vague claims.
     Bad: "I have extensive experience with data pipelines."
-    Good: "Building [specific system type] using [skill from profile] to solve
-           [problem type this role describes] — that is the core of what I do."
+    Good: "At eBay I replaced a manual multi-stage reporting workflow with a Python
+           pipeline that consolidated distributed data sources into a single output —
+           eliminating hours of weekly manual processing for the European finance team."
 
   Paragraph 3 — Why this role / this company (2–3 sentences)
     Something specific about this job or company that makes it a genuine fit —
@@ -90,6 +97,10 @@ German business register applies: Sie-form, no contractions, slightly more forma
 than English equivalent — but still direct and specific. Do not translate the
 English tone literally; calibrate for German professional norms.
 Do not mix languages. If a technical term has a standard German equivalent, use it.
+
+Exception: if the listing mixes English and German, use direct register even
+when writing the letter in German — the company's language choice signals their
+working register.
 
 --- BANNED PHRASES ---
 

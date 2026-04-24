@@ -31,6 +31,10 @@ Use the full range honestly.
 1-4   Poor fit. Wrong role type, wrong tech stack, or role the candidate
       explicitly avoids. Still score and record it — do not skip.
 
+Skills in moved_away_from: treat as a mild concern if required by the job,
+not a hard disqualifier. Note it in concerns but do not lower the
+relevance_score by more than 1 point on this basis alone.
+
 --- LOCATION ASSESSMENT ---
 
 Location and score are independent. Assess location_ok separately from relevance_score.
@@ -50,8 +54,12 @@ location_ok rules:
   onsite                                    → location_ok: false (always)
   unclear                                   → location_ok: false (err on side of caution)
 
-recommended: true only if location_ok is true AND relevance_score >= 7.
-If location_ok is false, recommended must be false regardless of relevance_score.
+recommended rules — both conditions must be true:
+  location_ok is true AND relevance_score >= 7  → recommended: true
+  location_ok is false OR relevance_score < 7   → recommended: MUST be false
+
+If location_ok is false, recommended MUST be false regardless of relevance_score.
+If relevance_score < 7, recommended MUST be false regardless of location_ok.
 
 --- FIELD GUIDANCE ---
 
@@ -67,6 +75,8 @@ strong_matches: list only skills or experience types that directly appear
 concerns: list concrete mismatches — wrong primary language, missing required
   tool, role type the candidate avoids, seniority mismatch, etc.
   Do not list location here — location has its own fields.
+  If the listing is written entirely in German AND does not mention English
+  as a working language, add "German-language workplace" to concerns.
 
 tech_stack: list only technologies stated as requirements or strong preferences
   in the job listing. Do not list every tool mentioned in passing.
